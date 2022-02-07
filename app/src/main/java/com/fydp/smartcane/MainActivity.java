@@ -2,7 +2,6 @@ package com.fydp.smartcane;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.location.Location;
 import android.os.Bundle;
 
@@ -13,7 +12,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.ContextCompat;
 
 import android.util.Log;
 import android.view.View;
@@ -22,8 +20,8 @@ import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.TextView;
 
-public class MainActivity extends AppCompatActivity {
 
+public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -42,6 +40,14 @@ public class MainActivity extends AppCompatActivity {
 
         initContentMain();
         initLocationPermission();
+        this.bt_service = new BluetoothService(this.bluetooth_conn_status, this.bt_conn_button, MainActivity.this);
+        this.bt_service.getBtPermissions();
+        this.bt_conn_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                bt_service.connectToPi(PI_NAME);
+            }
+        });
     }
 
     @Override
@@ -73,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
                             Boolean fineLocationGranted = result.getOrDefault(
                                     Manifest.permission.ACCESS_FINE_LOCATION, false);
                             Boolean coarseLocationGranted = result.getOrDefault(
-                                    Manifest.permission.ACCESS_COARSE_LOCATION,false);
+                                    Manifest.permission.ACCESS_COARSE_LOCATION, false);
                             if (fineLocationGranted != null && fineLocationGranted) {
                                 this.setNotification("Precise location access granted.");
                             } else if (coarseLocationGranted != null && coarseLocationGranted) {
@@ -84,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                 );
 
-        locationPermissionRequest.launch(new String[] {
+        locationPermissionRequest.launch(new String[]{
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION
         });
@@ -113,7 +119,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        this.bluetooth_conn_status = findViewById(R.id.bluetooth_conn_status);
+        this.bt_conn_button = findViewById(R.id.bt_conn_button);
     }
+
 
     private void setNotification(String message) {
         tv_notification.setText(message);
@@ -128,4 +137,10 @@ public class MainActivity extends AppCompatActivity {
     private TextView tv_notification;
     private TextView tv_location;
     private Button button_test_gps;
+
+    // connect to bluetooth
+    private TextView bluetooth_conn_status;
+    private Button bt_conn_button;
+    private BluetoothService bt_service;
+    private final String PI_NAME = "raspberrypi-61";
 }
