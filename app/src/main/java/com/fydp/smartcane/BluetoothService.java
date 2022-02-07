@@ -188,3 +188,14 @@ public class BluetoothService {
         }
     }
 }
+
+
+//                        InputStream tmpIn = bt_socket.getInputStream();
+//                        byte[] buf;
+//                        buf = new byte[1024];
+//                        int numBytes; // bytes returned from read()
+//                        // Read from the InputStream.
+//                        numBytes = tmpIn.read(buf);
+//                        String str = new String(buf, StandardCharsets.UTF_8);
+//                        this.bluetooth_conn_status.setText(str);
+

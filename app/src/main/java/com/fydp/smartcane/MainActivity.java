@@ -2,13 +2,6 @@ package com.fydp.smartcane;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothServerSocket;
-import android.bluetooth.BluetoothSocket;
-import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
 
@@ -19,21 +12,13 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
-import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.TextView;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Set;
-import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
     @Override
@@ -134,29 +119,6 @@ public class MainActivity extends AppCompatActivity {
         this.bt_conn_button = findViewById(R.id.bt_conn_button);
     }
 
-//    @SuppressLint("MissingPermission")
-//    @SuppressWarnings("deprecation")
-//    private void wait_for_pi_connection() {
-//        Intent discoverableIntent =
-//                    new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-//        // wait for 5 minutes
-//        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
-//        startActivityForResult(discoverableIntent, BT_CONN_REQ_CODE);
-
-        // look for pi, which should be paired already
-
-
-//                        InputStream tmpIn = bt_socket.getInputStream();
-//                        byte[] buf;
-//                        buf = new byte[1024];
-//                        int numBytes; // bytes returned from read()
-//                        // Read from the InputStream.
-//                        numBytes = tmpIn.read(buf);
-//                        String str = new String(buf, StandardCharsets.UTF_8);
-//                        this.bluetooth_conn_status.setText(str);
-
-
-//    }
 
     private void setNotification(String message) {
         tv_notification.setText(message);
