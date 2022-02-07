@@ -126,6 +126,7 @@ public class MainActivity extends AppCompatActivity {
         this.tv_notification = findViewById(R.id.tv_notification);
         this.tv_location = findViewById(R.id.tv_location);
         this.button_test_gps = findViewById(R.id.button_get_gps);
+
         this.button_test_gps.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -136,6 +137,8 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 Location location = gps.getLocation();
+                GoogleRouting gr = GoogleRouting.getInstance(view.getContext());
+                gr.CoordinatesToAddress(location);
                 setLocation(location);
             }
         });
@@ -226,6 +229,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void setLocation(Location l) {
         @SuppressLint("DefaultLocale") String s = String.format("lon: %f, lat: %f", l.getLongitude(), l.getLatitude());
+//        Log.i("Test GPS Result", s);
         tv_location.setText(s);
     }
 
