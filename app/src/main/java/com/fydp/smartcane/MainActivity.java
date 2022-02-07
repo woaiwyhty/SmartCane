@@ -3,6 +3,7 @@ package com.fydp.smartcane;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.content.Intent;
 import android.location.Location;
 import android.os.Bundle;
@@ -102,21 +103,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initAudioPermission() {
-////        if(ContextCompat.checkSelfPermission(this,Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED){
-////            checkPermission();
-////        }
-////        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-////            AppCompatActivity.requestPermissions(this,new String[]{Manifest.permission.RECORD_AUDIO},RecordAudioRequestCode);
-////        }
-//
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-//            if (!(ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)) {
-//                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-//                        Uri.parse("package:" + getPackageName()));
-//                startActivity(intent);
-//                finish();
-//            }
-//        }
+        if(ContextCompat.checkSelfPermission(this,Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED){
+            ActivityResultLauncher<String> audioPermissionLauncher =
+                registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                    if (isGranted) {
+                        this.setNotification("audio access granted.");
+                    } else {
+                        this.setNotification("No audio access granted.");
+                    }
+            });
+            audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO);
+        }
     }
 
     @SuppressLint({"WrongViewCast", "ClickableViewAccessibility"})
