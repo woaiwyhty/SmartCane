@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">SmartCane</string>
     <string name="action_settings">Settings</string>
+    <string name="you_will_see_input_here">You will see input here</string>
+    <string name="press_to_speak">Press to Speak</string>
 </resources>

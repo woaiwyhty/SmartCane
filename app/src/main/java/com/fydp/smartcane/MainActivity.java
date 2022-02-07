@@ -3,8 +3,12 @@ package com.fydp.smartcane;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.location.Location;
 import android.os.Bundle;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -15,11 +19,18 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 
+import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.EditText;
+import android.widget.ImageView;
+
+import java.util.ArrayList;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -41,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
 
         initContentMain();
         initLocationPermission();
+        initAudioPermission();
     }
 
     @Override
@@ -89,9 +101,28 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void initAudioPermission() {
+////        if(ContextCompat.checkSelfPermission(this,Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED){
+////            checkPermission();
+////        }
+////        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+////            AppCompatActivity.requestPermissions(this,new String[]{Manifest.permission.RECORD_AUDIO},RecordAudioRequestCode);
+////        }
+//
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+//            if (!(ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)) {
+//                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+//                        Uri.parse("package:" + getPackageName()));
+//                startActivity(intent);
+//                finish();
+//            }
+//        }
+    }
+
+    @SuppressLint({"WrongViewCast", "ClickableViewAccessibility"})
     private void initContentMain() {
         setContentView(R.layout.content_main);
-
+        // GPS
         this.tv_notification = findViewById(R.id.tv_notification);
         this.tv_location = findViewById(R.id.tv_location);
         this.button_test_gps = findViewById(R.id.button_get_gps);
@@ -108,6 +139,85 @@ public class MainActivity extends AppCompatActivity {
                 setLocation(location);
             }
         });
+
+        // voice input
+        voiceInputResult = findViewById(R.id.button_voice_input_result);
+        voiceInputButton = findViewById(R.id.button_voice_input);
+        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+        final Intent speechRecognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE,
+                Locale.getDefault());
+        speechRecognizer.setRecognitionListener(new RecognitionListener() {
+            @Override
+            public void onReadyForSpeech(Bundle bundle) {
+
+            }
+
+            @Override
+            public void onBeginningOfSpeech() {
+
+            }
+
+            @Override
+            public void onRmsChanged(float v) {
+
+            }
+
+            @Override
+            public void onBufferReceived(byte[] bytes) {
+
+            }
+
+            @Override
+            public void onEndOfSpeech() {
+
+            }
+
+            @Override
+            public void onError(int i) {
+
+            }
+
+            @Override
+            public void onResults(Bundle bundle) {
+                //getting all the matches
+                ArrayList<String> matches = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                Log.d("myTag", String.valueOf(matches));
+                //displaying the first match
+                if (matches != null)
+
+                    voiceInputResult.setText(matches.get(0));
+            }
+
+            @Override
+            public void onPartialResults(Bundle bundle) {
+
+            }
+
+            @Override
+            public void onEvent(int i, Bundle bundle) {
+
+            }
+        });
+        this.voiceInputButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_UP:
+                        speechRecognizer.stopListening();
+                        voiceInputResult.setHint("You will see input here");
+                        break;
+
+                    case MotionEvent.ACTION_DOWN:
+                        speechRecognizer.startListening(speechRecognizerIntent);
+                        voiceInputResult.setText("");
+                        voiceInputResult.setHint("Listening...");
+                        break;
+                }
+                return false;
+            }
+        });
     }
 
     private void setNotification(String message) {
@@ -122,4 +232,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView tv_notification;
     private TextView tv_location;
     private Button button_test_gps;
+    public static final Integer RecordAudioRequestCode = 1;
+    private SpeechRecognizer speechRecognizer;
+    private TextView voiceInputResult;
+    private Button voiceInputButton;
 }

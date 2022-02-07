@@ -29,6 +29,29 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.129" />
 
+    <Button
+        android:id="@+id/button_voice_input"
+        android:layout_width="150dp"
+        android:layout_height="54dp"
+        android:layout_marginTop="216dp"
+        android:paddingEnd="10dp"
+        android:text="@string/press_to_speak"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="MissingConstraints,RtlSymmetry"
+        tools:layout_editor_absoluteX="16dp" />
+
+    <TextView
+        android:id="@+id/button_voice_input_result"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:hint="@string/you_will_see_input_here"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHorizontal_bias="0.059"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.434" />
+
     <TextView
         android:id="@+id/tv_notification"
         android:layout_width="wrap_content"
@@ -37,6 +60,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.236" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
