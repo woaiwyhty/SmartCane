@@ -1,37 +1,26 @@
 package com.fydp.smartcane;
 
-import android.Manifest;
-import android.annotation.SuppressLint;
-import android.content.Context;
-import android.content.pm.PackageManager;
-import android.content.Intent;
-import android.location.Location;
-import android.os.Bundle;
-import android.speech.RecognitionListener;
-import android.speech.RecognizerIntent;
-import android.speech.SpeechRecognizer;
-
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.ContextCompat;
+import android.Manifest;
 
-import android.util.Log;
+import android.annotation.SuppressLint;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.EditText;
-import android.widget.ImageView;
 
-import java.util.ArrayList;
-import java.util.Locale;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -62,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
                 bt_service.connectToPi(PI_NAME);
             }
         });
+        this.voiceInputService = new VoiceInputService(this.voiceInputResult, MainActivity.this);
     }
 
     @Override
@@ -115,12 +105,14 @@ public class MainActivity extends AppCompatActivity {
             ActivityResultLauncher<String> audioPermissionLauncher =
                 registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                     if (isGranted) {
-                        this.setNotification("audio access granted.");
+                        this.voiceInputStatus.setText("Audio permission has been granted now.");
                     } else {
-                        this.setNotification("No audio access granted.");
+                        this.voiceInputStatus.setText("Audio permission is not granted.");
                     }
             });
             audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO);
+        } else {
+            this.voiceInputStatus.setText("Audio permission is granted.");
         }
     }
 
@@ -147,78 +139,25 @@ public class MainActivity extends AppCompatActivity {
                 setLocation(location);
             }
         });
+        // bluetooth
+        this.bluetooth_conn_status = findViewById(R.id.bluetooth_conn_status);
+        this.bt_conn_button = findViewById(R.id.bt_conn_button);
 
         // voice input
-        voiceInputResult = findViewById(R.id.button_voice_input_result);
-        voiceInputButton = findViewById(R.id.button_voice_input);
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
-        final Intent speechRecognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE,
-                Locale.getDefault());
-        speechRecognizer.setRecognitionListener(new RecognitionListener() {
-            @Override
-            public void onReadyForSpeech(Bundle bundle) {
-
-            }
-
-            @Override
-            public void onBeginningOfSpeech() {
-
-            }
-
-            @Override
-            public void onRmsChanged(float v) {
-
-            }
-
-            @Override
-            public void onBufferReceived(byte[] bytes) {
-
-            }
-
-            @Override
-            public void onEndOfSpeech() {
-
-            }
-
-            @Override
-            public void onError(int i) {
-
-            }
-
-            @Override
-            public void onResults(Bundle bundle) {
-                //getting all the matches
-                ArrayList<String> matches = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                Log.d("myTag", String.valueOf(matches));
-                //displaying the first match
-                if (matches != null)
-
-                    voiceInputResult.setText(matches.get(0));
-            }
-
-            @Override
-            public void onPartialResults(Bundle bundle) {
-
-            }
-
-            @Override
-            public void onEvent(int i, Bundle bundle) {
-
-            }
-        });
+        this.voiceInputResult = findViewById(R.id.button_voice_input_result);
+        this.voiceInputButton = findViewById(R.id.button_voice_input);
+        this.voiceInputStatus = findViewById(R.id.audio_status);
         this.voiceInputButton.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_UP:
-                        speechRecognizer.stopListening();
                         voiceInputResult.setHint("You will see input here");
+                        voiceInputService.stopListening();
                         break;
 
                     case MotionEvent.ACTION_DOWN:
-                        speechRecognizer.startListening(speechRecognizerIntent);
+                        voiceInputService.startListening(v.getContext());
                         voiceInputResult.setText("");
                         voiceInputResult.setHint("Listening...");
                         break;
@@ -226,8 +165,6 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
-        this.bluetooth_conn_status = findViewById(R.id.bluetooth_conn_status);
-        this.bt_conn_button = findViewById(R.id.bt_conn_button);
     }
 
 
@@ -241,11 +178,14 @@ public class MainActivity extends AppCompatActivity {
         tv_location.setText(s);
     }
 
+    // gps
     private TextView tv_notification;
     private TextView tv_location;
     private Button button_test_gps;
-    public static final Integer RecordAudioRequestCode = 1;
-    private SpeechRecognizer speechRecognizer;
+
+    // voice input
+    private VoiceInputService voiceInputService;
+    private TextView voiceInputStatus;
     private TextView voiceInputResult;
     private Button voiceInputButton;
 
