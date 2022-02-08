@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -24,6 +25,7 @@ import androidx.core.content.ContextCompat;
 
 
 public class MainActivity extends AppCompatActivity {
+    TTS tts;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -165,8 +167,17 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
-    }
 
+        TTS tts = new TTS(getApplicationContext());
+        EditText ed1=(EditText)findViewById(R.id.editTextSpeak);
+        Button b1=(Button)findViewById(R.id.buttonRead);
+        b1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                tts.textToVoice(ed1.getText().toString());
+            }
+        });
+    }
 
     private void setNotification(String message) {
         tv_notification.setText(message);
