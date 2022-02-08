@@ -25,7 +25,6 @@ import androidx.core.content.ContextCompat;
 
 
 public class MainActivity extends AppCompatActivity {
-    TTS tts;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -168,6 +167,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // test to speech
         TTS tts = new TTS(getApplicationContext());
         EditText ed1=(EditText)findViewById(R.id.editTextSpeak);
         Button b1=(Button)findViewById(R.id.buttonRead);
@@ -205,4 +205,7 @@ public class MainActivity extends AppCompatActivity {
     private Button bt_conn_button;
     private BluetoothService bt_service;
     private final String PI_NAME = "raspberrypi-61";
+
+    // text to speech
+    private TTS tts;
 }
