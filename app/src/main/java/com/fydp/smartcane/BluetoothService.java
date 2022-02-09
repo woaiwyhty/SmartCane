@@ -17,6 +17,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.UUID;
 
@@ -47,8 +49,8 @@ public class BluetoothService {
     }
     public void getBtPermissions() {
         if (!hasBtPermission()) {
-            this.bt_status.setText("requesting bt discoverable permission");
-            Log.d(TAG, "requesting bt discoverable permission");
+            this.bt_status.setText("requesting bt permissions");
+            Log.d(TAG, "requesting bt permissions");
             String[] bt_permissions = {
                     Manifest.permission.BLUETOOTH_ADMIN,
                     Manifest.permission.BLUETOOTH,
@@ -92,7 +94,13 @@ public class BluetoothService {
     @SuppressLint("MissingPermission")
     public void connectToPi(String pi_name) {
         bt_conn_button.setEnabled(false);
+
+        if (!bt_adapter.isEnabled()) {
+            // enable bluetooth if not already enabled
+            bt_adapter.enable();
+        }
         if (!findPi(pi_name)) {
+            bt_conn_button.setEnabled(true);
             return;
         }
 
@@ -111,7 +119,7 @@ public class BluetoothService {
                 Log.d(TAG, "Established bluetooth connection to the cane");
                 bt_conn_button.setText("Already connected to cane");
                 bt_conn_button.setEnabled(false);
-                // call func to start receiver thread
+                (new RecvThread()).start();
             }
 
             public void onTick(long millisUntilFinished) {
@@ -147,6 +155,26 @@ public class BluetoothService {
         }.start();
     }
 
+    private void processMsg(String msg) {
+        // TODO: change this to more meaningful processing
+        // Could potentially put this is a separate thread if neccessary?
+
+        // 1. emergency button pressed
+        //    - if is_pressed == false -> init emergency protocol (play sound etc)
+        //    - if is_pressed == true -> turn off emergency protocol
+
+        // 2. lidar input received
+
+        // updates to the ui must be done on the main thread
+        ((Activity) context).runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+
+                bt_status.setText(msg);
+
+            }
+        });
+    }
 
     private class ConnectThread extends Thread {
         @SuppressLint("MissingPermission")
@@ -187,15 +215,46 @@ public class BluetoothService {
             }
         }
     }
+
+    private class RecvThread extends Thread {
+        private InputStream inputStream;
+        private byte[] buf; // mmBuffer store for the stream
+
+        public RecvThread() {
+            try {
+                inputStream = bt_socket.getInputStream();
+            } catch (IOException e) {
+                Log.e(TAG, "Error occurred when creating input stream", e);
+            }
+        }
+
+        public void run() {
+            buf = new byte[1024];
+            int numBytes; // bytes returned from read()
+
+            // Keep listening to the InputStream until an exception occurs.
+            while (true) {
+                try {
+                    // Read from the InputStream.
+                    numBytes = inputStream.read(buf);
+                    String msg = new String(buf, StandardCharsets.UTF_8);
+                    processMsg(msg);
+                } catch (IOException e) {
+                    Log.d(TAG, "Input stream was disconnected", e);
+                    break;
+                }
+            }
+        }
+
+        // Call this method from the main activity to shut down the connection.
+        public void cancel() {
+            try {
+                bt_socket.close();
+            } catch (IOException e) {
+                Log.e(TAG, "Could not close the connect socket", e);
+            }
+        }
+    }
 }
 
-
-//                        InputStream tmpIn = bt_socket.getInputStream();
-//                        byte[] buf;
-//                        buf = new byte[1024];
-//                        int numBytes; // bytes returned from read()
-//                        // Read from the InputStream.
-//                        numBytes = tmpIn.read(buf);
-//                        String str = new String(buf, StandardCharsets.UTF_8);
-//                        this.bluetooth_conn_status.setText(str);
 
