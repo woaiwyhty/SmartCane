@@ -49,8 +49,8 @@ public class BluetoothService {
     }
     public void getBtPermissions() {
         if (!hasBtPermission()) {
-            this.bt_status.setText("requesting bt discoverable permission");
-            Log.d(TAG, "requesting bt discoverable permission");
+            this.bt_status.setText("requesting bt permissions");
+            Log.d(TAG, "requesting bt permissions");
             String[] bt_permissions = {
                     Manifest.permission.BLUETOOTH_ADMIN,
                     Manifest.permission.BLUETOOTH,
@@ -94,7 +94,13 @@ public class BluetoothService {
     @SuppressLint("MissingPermission")
     public void connectToPi(String pi_name) {
         bt_conn_button.setEnabled(false);
+
+        if (!bt_adapter.isEnabled()) {
+            // enable bluetooth if not already enabled
+            bt_adapter.enable();
+        }
         if (!findPi(pi_name)) {
+            bt_conn_button.setEnabled(true);
             return;
         }
 
