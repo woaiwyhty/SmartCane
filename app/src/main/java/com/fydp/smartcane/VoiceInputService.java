@@ -27,18 +27,26 @@ import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
 import java.util.Locale;
 
-public class VoiceInputService {
+public final class VoiceInputService {
+    private static VoiceInputService INSTANCE = null;
     private SpeechRecognizer speechRecognizer;
     private Intent speechRecognizerIntent;
     private TextView voiceInputResult;
 
     private final String TAG = "VoiceInputService";
 
-    public VoiceInputService(TextView voiceInputResult, Context context) {
+    private VoiceInputService(TextView voiceInputResult, Context context) {
         this.voiceInputResult = voiceInputResult;
         // set up speech recognizer
         resetSpeechRecognizer(context);
         setRecogniserIntent();
+    }
+
+    public static VoiceInputService getInstance(TextView voiceInputResult, Context context) {
+        if (INSTANCE == null) {
+            INSTANCE = new VoiceInputService(voiceInputResult, context.getApplicationContext());
+        }
+        return(INSTANCE);
     }
 
     public void startListening(Context context) {
@@ -114,6 +122,7 @@ public class VoiceInputService {
             });
         }
     }
+
     private void setRecogniserIntent() {
         this.speechRecognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         this.speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);

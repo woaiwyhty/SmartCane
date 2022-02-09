@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
                 bt_service.connectToPi(PI_NAME);
             }
         });
-        this.voiceInputService = new VoiceInputService(this.voiceInputResult, MainActivity.this);
+        this.voiceInputService = VoiceInputService.getInstance(this.voiceInputResult, MainActivity.this);
     }
 
     @Override
