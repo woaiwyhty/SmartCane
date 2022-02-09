@@ -8,11 +8,11 @@ import java.util.Locale;
 import android.widget.Toast;
 
 public class TTS {
+    private static TTS mInstance = null;
     private static TextToSpeech mTTS;
     private Context mContext;
-    private static Integer mCount = 0;
 
-    public TTS(Context pContext) {
+    private TTS(Context pContext) {
         mContext = pContext;
         mTTS = new TextToSpeech(mContext.getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override
@@ -29,6 +29,13 @@ public class TTS {
         });
     }
 
+    public static TTS getTTS(Context pContext) {
+        if (mInstance == null) {
+            mInstance = new TTS(pContext);
+        }
+        return mInstance;
+    }
+
     public void textToVoice(String pString) {
         int result = mTTS.speak(pString, TextToSpeech.QUEUE_FLUSH, null, null);
         if (result != 0)
@@ -39,6 +46,5 @@ public class TTS {
         {
             Toast.makeText(mContext.getApplicationContext(), pString, Toast.LENGTH_SHORT).show();
         }
-        mCount++;
     }
 }

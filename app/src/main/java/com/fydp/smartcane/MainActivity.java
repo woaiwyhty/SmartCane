@@ -123,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
         this.bluetooth_conn_status = findViewById(R.id.bluetooth_conn_status);
         this.bt_conn_button = findViewById(R.id.bt_conn_button);
 
-        TTS tts = new TTS(getApplicationContext());
+        TTS tts = TTS.getTTS(getApplicationContext());
         EditText ed1=(EditText)findViewById(R.id.editTextSpeak);
         Button b1=(Button)findViewById(R.id.buttonRead);
         b1.setOnClickListener(new View.OnClickListener() {
