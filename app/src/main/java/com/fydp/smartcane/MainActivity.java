@@ -44,15 +44,8 @@ public class MainActivity extends AppCompatActivity {
         initContentMain();
         initLocationPermission();
         initAudioPermission();
-        this.bt_service = new BluetoothService(this.bluetooth_conn_status, this.bt_conn_button, MainActivity.this);
-        this.bt_service.getBtPermissions();
-        this.bt_conn_button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                bt_service.connectToPi(PI_NAME);
-            }
-        });
         this.voiceInputService = VoiceInputService.getInstance(this.voiceInputResult, MainActivity.this);
+        initBluetoothService();
     }
 
     @Override
@@ -140,9 +133,6 @@ public class MainActivity extends AppCompatActivity {
                 setLocation(location);
             }
         });
-        // bluetooth
-        this.bluetooth_conn_status = findViewById(R.id.bluetooth_conn_status);
-        this.bt_conn_button = findViewById(R.id.bt_conn_button);
 
         // voice input
         this.voiceInputResult = findViewById(R.id.button_voice_input_result);
@@ -175,6 +165,19 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 tts.textToVoice(ed1.getText().toString());
+            }
+        });
+    }
+
+    private void initBluetoothService() {
+        this.bluetooth_conn_status = findViewById(R.id.bluetooth_conn_status);
+        this.bt_conn_button = findViewById(R.id.bt_conn_button);
+        this.bt_service = new BluetoothService(this.bluetooth_conn_status, this.bt_conn_button, MainActivity.this);
+        this.bt_service.getBtPermissions();
+        this.bt_conn_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                bt_service.connectToPi(PI_NAME);
             }
         });
     }
