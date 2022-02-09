@@ -42,10 +42,9 @@ public class MainActivity extends AppCompatActivity {
         });
 
         initContentMain();
-        initLocationPermission();
-        initAudioPermission();
-        this.voiceInputService = VoiceInputService.getInstance(this.voiceInputResult, MainActivity.this);
+        initPermission();
         initBluetoothService();
+        initVoiceInputService();
     }
 
     @Override
@@ -70,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void initLocationPermission() {
+    private void initPermission() {
         ActivityResultLauncher<String[]> locationPermissionRequest =
                 registerForActivityResult(new ActivityResultContracts
                                 .RequestMultiplePermissions(), result -> {
@@ -85,29 +84,21 @@ public class MainActivity extends AppCompatActivity {
                             } else {
                                 this.setNotification("No location access granted.");
                             }
+                            Boolean audioGranted = result.getOrDefault(
+                                Manifest.permission.RECORD_AUDIO, false);
+                            if (audioGranted != null) {
+                                this.voiceInputStatus.setText("Audio permission has been granted now.");
+                            } else {
+                                this.voiceInputStatus.setText("Audio permission is not granted.");
+                            }
                         }
                 );
 
         locationPermissionRequest.launch(new String[]{
                 Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.RECORD_AUDIO
         });
-    }
-
-    private void initAudioPermission() {
-        if(ContextCompat.checkSelfPermission(this,Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED){
-            ActivityResultLauncher<String> audioPermissionLauncher =
-                registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-                    if (isGranted) {
-                        this.voiceInputStatus.setText("Audio permission has been granted now.");
-                    } else {
-                        this.voiceInputStatus.setText("Audio permission is not granted.");
-                    }
-            });
-            audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO);
-        } else {
-            this.voiceInputStatus.setText("Audio permission is granted.");
-        }
     }
 
     @SuppressLint({"WrongViewCast", "ClickableViewAccessibility"})
@@ -134,30 +125,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // voice input
-        this.voiceInputResult = findViewById(R.id.button_voice_input_result);
-        this.voiceInputButton = findViewById(R.id.button_voice_input);
-        this.voiceInputStatus = findViewById(R.id.audio_status);
-        this.voiceInputButton.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_UP:
-                        voiceInputResult.setHint("You will see input here");
-                        voiceInputService.stopListening();
-                        break;
-
-                    case MotionEvent.ACTION_DOWN:
-                        voiceInputService.startListening(v.getContext());
-                        voiceInputResult.setText("");
-                        voiceInputResult.setHint("Listening...");
-                        break;
-                }
-                return false;
-            }
-        });
-
-        // test to speech
+        // text to speech
         TTS tts = new TTS(getApplicationContext());
         EditText ed1=(EditText)findViewById(R.id.editTextSpeak);
         Button b1=(Button)findViewById(R.id.buttonRead);
@@ -178,6 +146,32 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 bt_service.connectToPi(PI_NAME);
+            }
+        });
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private void initVoiceInputService() {
+        this.voiceInputResult = findViewById(R.id.button_voice_input_result);
+        this.voiceInputButton = findViewById(R.id.button_voice_input);
+        this.voiceInputStatus = findViewById(R.id.audio_status);
+        this.voiceInputService = VoiceInputService.getInstance(this.voiceInputResult, MainActivity.this);
+        this.voiceInputButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_UP:
+                        voiceInputResult.setHint("You will see input here");
+                        voiceInputService.stopListening();
+                        break;
+
+                    case MotionEvent.ACTION_DOWN:
+                        voiceInputService.startListening(v.getContext());
+                        voiceInputResult.setText("");
+                        voiceInputResult.setHint("Listening...");
+                        break;
+                }
+                return false;
             }
         });
     }
