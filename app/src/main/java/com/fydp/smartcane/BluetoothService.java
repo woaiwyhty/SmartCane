@@ -33,6 +33,8 @@ public class BluetoothService {
     private BluetoothSocket bt_socket;
     private BluetoothDevice bt_pi;
 
+    private TTS tts;
+
     private final int BT_CONN_REQ_CODE = 1;
     private final String TAG = "BluetoothService";
 
@@ -41,6 +43,7 @@ public class BluetoothService {
         this.bt_conn_button = bt_conn_button;
         this.context = context;
         this.bt_adapter = BluetoothAdapter.getDefaultAdapter();
+        this.tts = TTS.getTTS(context.getApplicationContext());
     }
 
     public boolean hasBtPermission() {
@@ -50,7 +53,9 @@ public class BluetoothService {
     public void getBtPermissions() {
         if (!hasBtPermission()) {
             this.bt_status.setText("requesting bt permissions");
+            this.tts.textToVoice("requesting bt permissions");
             Log.d(TAG, "requesting bt permissions");
+            (new msgProcessThread("emergencyButton:yes")).start();
             String[] bt_permissions = {
                     Manifest.permission.BLUETOOTH_ADMIN,
                     Manifest.permission.BLUETOOTH,
@@ -58,6 +63,7 @@ public class BluetoothService {
             ActivityCompat.requestPermissions((Activity) context, bt_permissions, BT_CONN_REQ_CODE);
         } else {
             this.bt_status.setText("bt permission already granted");
+            this.tts.textToVoice("bt permission already granted");
             Log.d(TAG, "bt permission already granted");
         }
     }
@@ -66,6 +72,7 @@ public class BluetoothService {
     private boolean findPi(String pi_name) {
         if (!hasBtPermission()) {
             this.bt_status.setText("bt permission not granted, please grant permission and try again");
+            this.tts.textToVoice("bt permission not granted, please grant permission and try again");
             Log.d(TAG, "bt permission not granted, please grant permission and try again");
             getBtPermissions();
             return false;
@@ -75,11 +82,13 @@ public class BluetoothService {
         // There are paired devices. Get the name and address of each paired device.
         for (BluetoothDevice device : pairedDevices) {
             this.bt_status.setText("Looking for the cane");
+            this.tts.textToVoice("Looking for the cane");
             Log.d(TAG, "Looking for the cane");
             String deviceName = device.getName();
 //            String deviceHardwareAddress = device.getAddress(); // MAC address
             if (deviceName.equals(pi_name)) {
                 this.bt_status.setText("Found the cane in paired devices");
+                this.tts.textToVoice("Found the cane in paired devices");
                 Log.d(TAG, "Found the cane in paired devices");
                 this.bt_pi = device;
                 return true;
@@ -87,6 +96,7 @@ public class BluetoothService {
         }
 
         this.bt_status.setText("Cannot find your cane. Please pair it with your phone and try again");
+        this.tts.textToVoice("Cannot find your cane. Please pair it with your phone and try again");
         Log.d(TAG, "Cannot find your cane. Please pair it with your phone and try again");
         return false;
     }
@@ -112,10 +122,12 @@ public class BluetoothService {
         // to try repeatedly
         // try to connect for 10 times, each with 5 sec interval
         bt_status.setText("Connecting to cane. Make sure it's on and in range");
+        tts.textToVoice("Connecting to cane. Make sure it's on and in range");
         (new ConnectThread()).start();
         new CountDownTimer(50000, 5000) {
             private void onConnected() {
                 bt_status.setText("Established bluetooth connection to the cane");
+                tts.textToVoice("Established bluetooth connection to the cane");
                 Log.d(TAG, "Established bluetooth connection to the cane");
                 bt_conn_button.setText("Already connected to cane");
                 bt_conn_button.setEnabled(false);
@@ -150,30 +162,110 @@ public class BluetoothService {
                 }
                 bt_conn_button.setEnabled(true);
                 bt_status.setText("Cannot connect to the cane. Please try again");
+                tts.textToVoice("Cannot connect to the cane. Please try again");
                 Log.d(TAG, "Cannot connect to the cane. Please try again");
             }
         }.start();
     }
 
-    private void processMsg(String msg) {
-        // TODO: change this to more meaningful processing
-        // Could potentially put this is a separate thread if neccessary?
+//    private void processMsg(String msg) {
+//        // TODO: change this to more meaningful processing
+//        // Could potentially put this is a separate thread if necessary?
 
-        // 1. emergency button pressed
-        //    - if is_pressed == false -> init emergency protocol (play sound etc)
-        //    - if is_pressed == true -> turn off emergency protocol
+//        // updates to the ui must be done on the main thread
+//        ((Activity) context).runOnUiThread(new Runnable() {
+//            @Override
+//            public void run() {
+//
+//                bt_status.setText(msg);
+//
+//            }
+//        });
+//    }
+//    private class emergencyProtocolThread extends Thread {
+//
+////        private void emergencyProtocol(boolean protocolON){
+////            if (protocolON){
+////                bt_status.setText("An emergency happened. Need help. Please call 911.");
+////                tts.textToVoice("An emergency happened. Need help. Please call 911.");
+////                Log.d(TAG, "An emergency happened. Need help. Please call 911.");
+////            }else{
+////                bt_status.setText("Emergency situation has been resolved. Thank you.");
+////                tts.textToVoice("Emergency situation has been resolved. Thank you.");
+////                Log.d(TAG, "Emergency situation has been resolved. Thank you.");
+////            }
+////
+////            while (true) {
+////                tts.textToVoice("An emergency happened. Need help. Please call 911.");
+////            }
+////        }
+//
+//        public void run(){
+//            try{
+//                bt_status.setText("An emergency happened. Need help. Please call 911.");
+//                Log.d(TAG, "An emergency happened. Need help. Please call 911.");
+//                while (true) {
+//                    tts.textToVoice("An emergency happened. Need help. Please call 911.");
+//                }
+//            }catch(Exception e){
+//                Log.d(TAG, "Failed to launch emergency protocol.", e);
+//            }
+//        }
+//    }
 
-        // 2. lidar input received
+    private class msgProcessThread extends Thread {
+        private String msg;
 
-        // updates to the ui must be done on the main thread
-        ((Activity) context).runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
+        public msgProcessThread(String msg){
+            this.msg = msg;
+        }
 
-                bt_status.setText(msg);
+        private void processMsg(String msg) {
+            // TODO: change this to more meaningful processing
+            // msg = "NAME:data"
+            // 1. emergency button pressed
+            //    - if is_pressed == false -> init emergency protocol (play sound etc) call TTS
+            //    - if is_pressed == true -> turn off emergency protocol
 
+            // 2. lidar input received
+
+            String[] parsedMsg = msg.split("\\:");
+            bt_status.setText(parsedMsg[0]);
+            bt_status.setText(parsedMsg[1]);
+            String name = parsedMsg[0];
+            if (name.equals("emergencyButton")){
+                boolean is_pressed = (parsedMsg[1].equals("yes"));
+                if(is_pressed){
+//                    (new emergencyProtocolThread()).start();
+                    bt_status.setText("An emergency happened. Need help. Please call 911.");
+//                    for (int i = 0; i<=2; i++){
+                        tts.textToVoice("An emergency happened. Need help. Please call 911.");
+                        tts.textToVoice("An emergency happened. Need help. Please call 911.");
+
+//                    }
+                    Log.d(TAG, "An emergency happened. Need help. Please call 911.");
+                }else{
+//                    (new emergencyProtocolThread()).stop();
+                    bt_status.setText("Emergency situation has been resolved. Thank you.");
+                    tts.textToVoice("Emergency situation has been resolved. Thank you.");
+                    Log.d(TAG, "Emergency situation has been resolved. Thank you.");
+                }
+            }else if (name.equals("Lidar")){
+                float distance = Float.parseFloat(parsedMsg[1]);
+                // TODO: verify: units, alerting distance
+            }else{
+                //TODO: try throw exception here?
+                Log.d(TAG, "Unrecognized message type.");
             }
-        });
+        }
+
+        public void run(){
+            try{
+                this.processMsg(msg);
+            }catch(Exception e){
+                Log.d(TAG, "Message process failed.", e);
+            }
+        }
     }
 
     private class ConnectThread extends Thread {
@@ -238,7 +330,8 @@ public class BluetoothService {
                     // Read from the InputStream.
                     numBytes = inputStream.read(buf);
                     String msg = new String(buf, StandardCharsets.UTF_8);
-                    processMsg(msg);
+//                    (new msgProcessThread(msg)).start();
+//                    (new msgProcessThread("emergencyButton:yes")).start();
                 } catch (IOException e) {
                     Log.d(TAG, "Input stream was disconnected", e);
                     break;

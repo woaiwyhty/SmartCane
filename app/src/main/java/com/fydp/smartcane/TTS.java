@@ -37,7 +37,7 @@ public class TTS {
     }
 
     public void textToVoice(String pString) {
-        int result = mTTS.speak(pString, TextToSpeech.QUEUE_FLUSH, null, null);
+        int result = mTTS.speak(pString, TextToSpeech.QUEUE_ADD, null, null);
         if (result != 0)
         {
             Toast.makeText(mContext.getApplicationContext(), "Failed", Toast.LENGTH_SHORT).show();
