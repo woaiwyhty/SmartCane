@@ -55,7 +55,6 @@ public class BluetoothService {
             this.bt_status.setText("requesting bt permissions");
             this.tts.textToVoice("requesting bt permissions");
             Log.d(TAG, "requesting bt permissions");
-            (new msgProcessThread("emergencyButton:yes")).start();
             String[] bt_permissions = {
                     Manifest.permission.BLUETOOTH_ADMIN,
                     Manifest.permission.BLUETOOTH,
@@ -214,13 +213,13 @@ public class BluetoothService {
 //    }
 
     private class msgProcessThread extends Thread {
-        private String msg;
+        private String[] parsedMsg;
 
-        public msgProcessThread(String msg){
-            this.msg = msg;
+        public msgProcessThread(String[] parsedMsg){
+            this.parsedMsg = parsedMsg;
         }
 
-        private void processMsg(String msg) {
+        private void processMsg(String[] parsedMsg) throws Exception {
             // TODO: change this to more meaningful processing
             // msg = "NAME:data"
             // 1. emergency button pressed
@@ -229,39 +228,69 @@ public class BluetoothService {
 
             // 2. lidar input received
 
-            String[] parsedMsg = msg.split("\\:");
-            bt_status.setText(parsedMsg[0]);
-            bt_status.setText(parsedMsg[1]);
             String name = parsedMsg[0];
             if (name.equals("emergencyButton")){
-                boolean is_pressed = (parsedMsg[1].equals("yes"));
-                if(is_pressed){
-//                    (new emergencyProtocolThread()).start();
-                    bt_status.setText("An emergency happened. Need help. Please call 911.");
-//                    for (int i = 0; i<=2; i++){
-                        tts.textToVoice("An emergency happened. Need help. Please call 911.");
-                        tts.textToVoice("An emergency happened. Need help. Please call 911.");
-
-//                    }
-                    Log.d(TAG, "An emergency happened. Need help. Please call 911.");
-                }else{
-//                    (new emergencyProtocolThread()).stop();
-                    bt_status.setText("Emergency situation has been resolved. Thank you.");
-                    tts.textToVoice("Emergency situation has been resolved. Thank you.");
-                    Log.d(TAG, "Emergency situation has been resolved. Thank you.");
+                //TODO: thread not stopped as expected
+                try{
+                    //                System.out.println("is_pressed =" + parsedMsg[1].equals("yes"));
+                    if(parsedMsg[1].equals("yes")){
+                        ((Activity) context).runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                bt_status.setText("An emergency happened. Need help. Please call 911.");
+                                Log.d(TAG, "An emergency happened. Need help. Please call 911.");
+                            }
+                        });
+                        while(parsedMsg[1].equals("yes")){
+                            ((Activity) context).runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if(parsedMsg[1].equals("yes")){
+                                        tts.textToVoice("An emergency happened. Need help. Please call 911.");
+                                    }
+                                }
+                            });
+                            sleep(10000);
+                        }
+                    }else if(parsedMsg[1].equals("no")){
+                        ((Activity) context).runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                bt_status.setText("Emergency situation has been resolved. Thank you.");
+                                tts.textToVoice("Emergency situation has been resolved. Thank you.");
+                                Log.d(TAG, "Emergency situation has been resolved. Thank you.");
+                            }
+                        });
+                    }else{
+                        Log.d(TAG, "Invalid emergency button status.");
+                        throw new Exception("Invalid emergency button status.");
+                    }
+                }catch(InterruptedException e){
+                    Log.d(TAG,"previous emergency protocol interrupted.", e);
                 }
-            }else if (name.equals("Lidar")){
-                float distance = Float.parseFloat(parsedMsg[1]);
-                // TODO: verify: units, alerting distance
+            }else if(name.equals("Lidar")){
+                float distance_unit_cm = Float.parseFloat(parsedMsg[1]);
+                // TODO: call distance alarming/OpenCV service
+            }else if(name.equals("pressToSpeak")){
+                boolean pressToSpeak;
+                if(parsedMsg[1].equals("yes")){
+                    pressToSpeak = true;
+                    //TODO: start voice input service
+                }else if(parsedMsg[1].equals("no")){
+                    pressToSpeak = false;
+                    //TODO: stop voice input service
+                }else{
+                    throw new Exception("Invalid press to speak status.");
+                }
             }else{
-                //TODO: try throw exception here?
                 Log.d(TAG, "Unrecognized message type.");
+                throw new Exception("Unrecognized message type.");
             }
         }
 
         public void run(){
             try{
-                this.processMsg(msg);
+                this.processMsg(parsedMsg);
             }catch(Exception e){
                 Log.d(TAG, "Message process failed.", e);
             }
@@ -330,8 +359,9 @@ public class BluetoothService {
                     // Read from the InputStream.
                     numBytes = inputStream.read(buf);
                     String msg = new String(buf, StandardCharsets.UTF_8);
-//                    (new msgProcessThread(msg)).start();
-//                    (new msgProcessThread("emergencyButton:yes")).start();
+                    String[] cleanMsg = msg.split(";");
+                    String[] parsedMsg = cleanMsg[0].split(":");
+                    (new msgProcessThread(parsedMsg)).start();
                 } catch (IOException e) {
                     Log.d(TAG, "Input stream was disconnected", e);
                     break;
