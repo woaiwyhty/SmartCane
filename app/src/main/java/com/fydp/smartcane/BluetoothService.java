@@ -35,6 +35,9 @@ public class BluetoothService {
 
     private TTS tts;
 
+    private boolean emg_on;
+    private boolean emg_current_state;
+
     private final int BT_CONN_REQ_CODE = 1;
     private final String TAG = "BluetoothService";
 
@@ -44,6 +47,8 @@ public class BluetoothService {
         this.context = context;
         this.bt_adapter = BluetoothAdapter.getDefaultAdapter();
         this.tts = TTS.getTTS(context.getApplicationContext());
+        this.emg_on = false;
+        this.emg_current_state = false;
     }
 
     public boolean hasBtPermission() {
@@ -167,50 +172,37 @@ public class BluetoothService {
         }.start();
     }
 
-//    private void processMsg(String msg) {
-//        // TODO: change this to more meaningful processing
-//        // Could potentially put this is a separate thread if necessary?
+    private class emergencyProtocolThread extends Thread {
 
-//        // updates to the ui must be done on the main thread
-//        ((Activity) context).runOnUiThread(new Runnable() {
-//            @Override
-//            public void run() {
-//
-//                bt_status.setText(msg);
-//
-//            }
-//        });
-//    }
-//    private class emergencyProtocolThread extends Thread {
-//
-////        private void emergencyProtocol(boolean protocolON){
-////            if (protocolON){
-////                bt_status.setText("An emergency happened. Need help. Please call 911.");
-////                tts.textToVoice("An emergency happened. Need help. Please call 911.");
-////                Log.d(TAG, "An emergency happened. Need help. Please call 911.");
-////            }else{
-////                bt_status.setText("Emergency situation has been resolved. Thank you.");
-////                tts.textToVoice("Emergency situation has been resolved. Thank you.");
-////                Log.d(TAG, "Emergency situation has been resolved. Thank you.");
-////            }
-////
-////            while (true) {
-////                tts.textToVoice("An emergency happened. Need help. Please call 911.");
-////            }
-////        }
-//
-//        public void run(){
-//            try{
-//                bt_status.setText("An emergency happened. Need help. Please call 911.");
-//                Log.d(TAG, "An emergency happened. Need help. Please call 911.");
-//                while (true) {
-//                    tts.textToVoice("An emergency happened. Need help. Please call 911.");
-//                }
-//            }catch(Exception e){
-//                Log.d(TAG, "Failed to launch emergency protocol.", e);
-//            }
-//        }
-//    }
+        public void run(){
+            try{
+                if (emg_on == false){
+                    return;
+                }
+                ((Activity) context).runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        bt_status.setText("An emergency happened. Need help. Please call 911.");
+                        Log.d(TAG, "An emergency happened. Need help. Please call 911.");
+                    }
+                });
+                while(true){
+                    if (emg_on == false){
+                        return;
+                    }
+                    ((Activity) context).runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            tts.textToVoice("An emergency happened. Need help. Please call 911.");
+                        }
+                    });
+                    sleep(9000);
+                }
+            }catch(Exception e){
+                Log.d(TAG, "Failed to launch emergency protocol.", e);
+            }
+        }
+    }
 
     private class msgProcessThread extends Thread {
         private String[] parsedMsg;
@@ -225,66 +217,72 @@ public class BluetoothService {
             // 1. emergency button pressed
             //    - if is_pressed == false -> init emergency protocol (play sound etc) call TTS
             //    - if is_pressed == true -> turn off emergency protocol
-
             // 2. lidar input received
+            // 3. Press to speak
 
             String name = parsedMsg[0];
-            if (name.equals("emergencyButton")){
-                //TODO: thread not stopped as expected
-                try{
-                    //                System.out.println("is_pressed =" + parsedMsg[1].equals("yes"));
-                    if(parsedMsg[1].equals("yes")){
-                        ((Activity) context).runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                bt_status.setText("An emergency happened. Need help. Please call 911.");
-                                Log.d(TAG, "An emergency happened. Need help. Please call 911.");
+            switch(name) {
+                case "emergencyButton":
+                    try{
+                        if(parsedMsg[1].equals("yes")){
+                            emg_on = true;
+                            if(emg_on == emg_current_state){
+                                Log.d(TAG, parsedMsg[0] + ":" + parsedMsg[1] + " sent twice. Emergency protocol remain unchanged.");
+                                throw new Exception(parsedMsg[0] + ":" + parsedMsg[1] + "Emergency protocol remain unchanged.");
                             }
-                        });
-                        while(parsedMsg[1].equals("yes")){
+
+                            // update and launch emergency protocol
+                            emg_current_state = emg_on;
+                            (new emergencyProtocolThread()).start();
+                        }
+
+                        if(parsedMsg[1].equals("no")){
+                            //set emergency protocol tp off and notify
+                            emg_on = false;
+                            if(emg_on == emg_current_state){
+                                Log.d(TAG, parsedMsg[0] + ":" + parsedMsg[1] + " sent twice. Emergency protocol remain unchanged.");
+                                throw new Exception(parsedMsg[0] + ":" + parsedMsg[1] + "Emergency protocol remain unchanged.");
+                            }
+
+                            emg_current_state = emg_on;
                             ((Activity) context).runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    if(parsedMsg[1].equals("yes")){
-                                        tts.textToVoice("An emergency happened. Need help. Please call 911.");
-                                    }
+                                    bt_status.setText("Emergency situation has been resolved. Thank you.");
+                                    tts.textToVoice("Emergency situation has been resolved. Thank you.");
+                                    Log.d(TAG, "Emergency situation has been resolved. Thank you.");
                                 }
                             });
-                            sleep(10000);
                         }
-                    }else if(parsedMsg[1].equals("no")){
-                        ((Activity) context).runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                bt_status.setText("Emergency situation has been resolved. Thank you.");
-                                tts.textToVoice("Emergency situation has been resolved. Thank you.");
-                                Log.d(TAG, "Emergency situation has been resolved. Thank you.");
-                            }
-                        });
-                    }else{
-                        Log.d(TAG, "Invalid emergency button status.");
-                        throw new Exception("Invalid emergency button status.");
+
+                        if(!parsedMsg[1].equals("no") || !parsedMsg[1].equals("yes")){
+                            Log.d(TAG, "Invalid emergency button status.");
+                            throw new Exception("Invalid emergency button status.");
+                        }
+                    }catch(InterruptedException e){
+                        Log.d(TAG,"previous emergency protocol interrupted.", e);
                     }
-                }catch(InterruptedException e){
-                    Log.d(TAG,"previous emergency protocol interrupted.", e);
-                }
-            }else if(name.equals("Lidar")){
-                float distance_unit_cm = Float.parseFloat(parsedMsg[1]);
-                // TODO: call distance alarming/OpenCV service
-            }else if(name.equals("pressToSpeak")){
-                boolean pressToSpeak;
-                if(parsedMsg[1].equals("yes")){
-                    pressToSpeak = true;
-                    //TODO: start voice input service
-                }else if(parsedMsg[1].equals("no")){
-                    pressToSpeak = false;
-                    //TODO: stop voice input service
-                }else{
-                    throw new Exception("Invalid press to speak status.");
-                }
-            }else{
-                Log.d(TAG, "Unrecognized message type.");
-                throw new Exception("Unrecognized message type.");
+                    break;
+                case "Lidar":
+                    float distance_unit_cm = Float.parseFloat(parsedMsg[1]);
+                    // TODO: call distance alarming/OpenCV service
+                    break;
+                case "pressToSpeak":
+                    boolean pressToSpeak;
+                    if(parsedMsg[1].equals("yes")){
+                        pressToSpeak = true;
+                        //TODO: start voice input service
+                    }else if(parsedMsg[1].equals("no")){
+                        pressToSpeak = false;
+                        //TODO: stop voice input service
+                    }else{
+                        throw new Exception("Invalid press to speak status.");
+                    }
+                    break;
+                default:
+                    // unrecognized type
+                    Log.d(TAG, "Unrecognized message type: " + parsedMsg[0]);
+                    throw new Exception("Unrecognized message type: " + parsedMsg[0]);
             }
         }
 
