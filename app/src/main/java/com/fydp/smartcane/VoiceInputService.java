@@ -32,6 +32,7 @@ public final class VoiceInputService {
     private SpeechRecognizer speechRecognizer;
     private Intent speechRecognizerIntent;
     private TextView voiceInputResult;
+    private Context mContext;
 
     private final String TAG = "VoiceInputService";
 
@@ -40,6 +41,7 @@ public final class VoiceInputService {
         // set up speech recognizer
         resetSpeechRecognizer(context);
         setRecogniserIntent();
+        this.mContext = context;
     }
 
     public static VoiceInputService getInstance(TextView voiceInputResult, Context context) {
@@ -105,6 +107,16 @@ public final class VoiceInputService {
                     //displaying the first match
                     if (matches != null){
                         voiceInputResult.setText(matches.get(0));
+                        String result = matches.get(0);
+                        if (result.contains("start navigating")) {
+                            // TODO: add address parsing
+                            String dest = "258 King St N Waterloo";
+                            ProgramControl.getInstance(mContext).StartNavigation(dest);
+                        } else if (result.contains("end navigating")) {
+                            ProgramControl.getInstance(mContext).EndNavigation();
+                        } else {
+                            TTS.getTTS(mContext).textToVoice("Sorry, we couldn't understand");
+                        }
                     } else {
                         voiceInputResult.setText("Result Not Available");
                     }

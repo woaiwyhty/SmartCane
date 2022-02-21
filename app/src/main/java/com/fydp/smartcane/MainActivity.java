@@ -9,6 +9,8 @@ import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Menu;
@@ -175,6 +177,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
 
     private void setNotification(String message) {
         tv_notification.setText(message);
