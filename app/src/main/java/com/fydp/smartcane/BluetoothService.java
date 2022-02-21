@@ -35,6 +35,8 @@ public class BluetoothService {
 
     private TTS tts;
 
+    private VoiceInputService voiceInputService;
+
     private boolean emg_on;
     private boolean emg_current_state;
 
@@ -49,6 +51,7 @@ public class BluetoothService {
         this.tts = TTS.getTTS(context.getApplicationContext());
         this.emg_on = false;
         this.emg_current_state = false;
+        this.voiceInputService = VoiceInputService.getInstance(this.bt_status, context);
     }
 
     public boolean hasBtPermission() {
@@ -212,8 +215,8 @@ public class BluetoothService {
         }
 
         private void processMsg(String[] parsedMsg) throws Exception {
-            // TODO: change this to more meaningful processing
-            // msg = "NAME:data"
+            // parsedMsg = "NAME:data"
+
             // 1. emergency button pressed
             //    - if is_pressed == false -> init emergency protocol (play sound etc) call TTS
             //    - if is_pressed == true -> turn off emergency protocol
@@ -224,7 +227,7 @@ public class BluetoothService {
             switch(name) {
                 case "emergencyButton":
                     try{
-                        if(parsedMsg[1].equals("yes")){
+                        if(parsedMsg[1].equals("true")){
                             emg_on = true;
                             if(emg_on == emg_current_state){
                                 Log.d(TAG, parsedMsg[0] + ":" + parsedMsg[1] + " sent twice. Emergency protocol remain unchanged.");
@@ -236,7 +239,7 @@ public class BluetoothService {
                             (new emergencyProtocolThread()).start();
                         }
 
-                        if(parsedMsg[1].equals("no")){
+                        if(parsedMsg[1].equals("false")){
                             //set emergency protocol tp off and notify
                             emg_on = false;
                             if(emg_on == emg_current_state){
@@ -255,7 +258,7 @@ public class BluetoothService {
                             });
                         }
 
-                        if(!parsedMsg[1].equals("no") || !parsedMsg[1].equals("yes")){
+                        if(!parsedMsg[1].equals("false") || !parsedMsg[1].equals("true")){
                             Log.d(TAG, "Invalid emergency button status.");
                             throw new Exception("Invalid emergency button status.");
                         }
@@ -265,19 +268,83 @@ public class BluetoothService {
                     break;
                 case "Lidar":
                     float distance_unit_cm = Float.parseFloat(parsedMsg[1]);
-                    // TODO: call distance alarming/OpenCV service
+                    // might be useful
+                    float lidar_strength = Float.parseFloat(parsedMsg[2]);
+                    float lidar_temperature = Float.parseFloat(parsedMsg[3]);
+
+                    // TODO: need to be connected to distance alarming/OpenCV service
+                    // This is a Dummy block for testing. Need to be changed to meaningful calls
+                    ((Activity) context).runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            bt_status.setText(
+                                    "Lidar: distance = " + distance_unit_cm + " cm" +
+                                            ", strength = " + lidar_strength +
+                                            ", temperature = " + lidar_temperature);
+                            tts.textToVoice(
+                                    "Lidar: distance = " + distance_unit_cm + " cm" +
+                                    ", strength = " + lidar_strength +
+                                    ", temperature = " + lidar_temperature);
+                            Log.d(TAG,
+                                    "Lidar: distance = " + distance_unit_cm + " cm" +
+                                    ", strength = " + lidar_strength +
+                                    ", temperature = " + lidar_temperature);
+                        }
+                    });
                     break;
                 case "pressToSpeak":
                     boolean pressToSpeak;
-                    if(parsedMsg[1].equals("yes")){
+
+                    // TODO: press to speak working. Need to connect the input voice msg to follow up protocols
+                    if(parsedMsg[1].equals("true")){
+                        // This is a Dummy test of Voice Input start listening
                         pressToSpeak = true;
-                        //TODO: start voice input service
-                    }else if(parsedMsg[1].equals("no")){
+                        ((Activity) context).runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                voiceInputService.startListening(context);
+                                bt_status.setText("");
+                                bt_status.setHint("Listening...");
+                            }
+                        });
+                    }else if(parsedMsg[1].equals("false")){
+                        // This is a Dummy test of Voice Input stop listening
                         pressToSpeak = false;
-                        //TODO: stop voice input service
+                        ((Activity) context).runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                bt_status.setHint("You will see input here");
+                                voiceInputService.stopListening();
+                            }
+                        });
                     }else{
                         throw new Exception("Invalid press to speak status.");
                     }
+                    break;
+                case "lowBattery":
+                    boolean bettery_low;
+                    if(parsedMsg[1].equals("true")){
+                        bettery_low = true;
+                        ((Activity) context).runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                bt_status.setText("Battery low. Please charge now.");
+                                tts.textToVoice("Battery low. Please charge now.");
+                                Log.d(TAG, "Battery low. Please charge now.");
+                            }
+                        });
+                    }else if(parsedMsg[1].equals("true")){
+                        bettery_low = false;
+                        ((Activity) context).runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                bt_status.setText("bettery_low = false");
+                                tts.textToVoice("bettery_low = false");
+                                Log.d(TAG, "bettery_low = false");
+                            }
+                        });
+                    }
+
                     break;
                 default:
                     // unrecognized type
@@ -361,6 +428,15 @@ public class BluetoothService {
                     String[] parsedMsg = cleanMsg[0].split(":");
                     (new msgProcessThread(parsedMsg)).start();
                 } catch (IOException e) {
+                    ((Activity) context).runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            bt_status.setText("bluetooth connection lost");
+                            tts.textToVoice("bluetooth connection lost");
+                            bt_conn_button.setText("Connect to cane");
+                            bt_conn_button.setEnabled(true);
+                        }
+                    });
                     Log.d(TAG, "Input stream was disconnected", e);
                     break;
                 }
