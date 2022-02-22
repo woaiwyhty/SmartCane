@@ -266,31 +266,30 @@ public class BluetoothService {
                         Log.d(TAG,"previous emergency protocol interrupted.", e);
                     }
                     break;
-                case "Lidar":
+                case "lidar":
                     float distance_unit_cm = Float.parseFloat(parsedMsg[1]);
                     // might be useful
                     float lidar_strength = Float.parseFloat(parsedMsg[2]);
                     float lidar_temperature = Float.parseFloat(parsedMsg[3]);
 
                     // TODO: need to be connected to distance alarming/OpenCV service
+                    // Note: lidar sending speed REALLY FAST! careful about queue etc
                     // This is a Dummy block for testing. Need to be changed to meaningful calls
-                    ((Activity) context).runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            bt_status.setText(
-                                    "Lidar: distance = " + distance_unit_cm + " cm" +
-                                            ", strength = " + lidar_strength +
-                                            ", temperature = " + lidar_temperature);
-                            tts.textToVoice(
-                                    "Lidar: distance = " + distance_unit_cm + " cm" +
-                                    ", strength = " + lidar_strength +
-                                    ", temperature = " + lidar_temperature);
-                            Log.d(TAG,
-                                    "Lidar: distance = " + distance_unit_cm + " cm" +
-                                    ", strength = " + lidar_strength +
-                                    ", temperature = " + lidar_temperature);
-                        }
-                    });
+                    if (distance_unit_cm < 20){
+                        ((Activity) context).runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                bt_status.setText(
+                                        "Lidar: distance = " + distance_unit_cm + " cm" +
+                                                ", strength = " + lidar_strength +
+                                                ", temperature = " + lidar_temperature);
+                                Log.d(TAG,
+                                        "Lidar: distance = " + distance_unit_cm + " cm" +
+                                                ", strength = " + lidar_strength +
+                                                ", temperature = " + lidar_temperature);
+                            }
+                        });
+                    }
                     break;
                 case "pressToSpeak":
                     boolean pressToSpeak;
