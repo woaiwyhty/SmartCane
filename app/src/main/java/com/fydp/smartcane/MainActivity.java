@@ -1,32 +1,36 @@
 package com.fydp.smartcane;
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
-
 import android.Manifest;
-
 import android.annotation.SuppressLint;
-import android.content.pm.PackageManager;
 import android.location.Location;
+import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
-import android.view.MotionEvent;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.ContextCompat;
 
 
 public class MainActivity extends AppCompatActivity {
+    private final String PI_NAME = "raspberrypi-61";
+    // gps
+    private TextView tv_notification;
+    private TextView tv_location;
+    // voice input
+    private VoiceInputService voiceInputService;
+    private TextView voiceInputStatus;
+    private TextView voiceInputResult;
+    private BluetoothService bt_service;
+
+    @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,14 +38,6 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
 
         initContentMain();
         initPermission();
@@ -67,10 +63,10 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.action_settings) {
             return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
     private void initPermission() {
         ActivityResultLauncher<String[]> locationPermissionRequest =
                 registerForActivityResult(new ActivityResultContracts
@@ -87,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
                                 this.setNotification("No location access granted.");
                             }
                             Boolean audioGranted = result.getOrDefault(
-                                Manifest.permission.RECORD_AUDIO, false);
+                                    Manifest.permission.RECORD_AUDIO, false);
                             if (audioGranted != null) {
                                 this.voiceInputStatus.setText("Audio permission has been granted now.");
                             } else {
@@ -109,75 +105,59 @@ public class MainActivity extends AppCompatActivity {
         // GPS
         this.tv_notification = findViewById(R.id.tv_notification);
         this.tv_location = findViewById(R.id.tv_location);
-        this.button_test_gps = findViewById(R.id.button_get_gps);
+        Button button_test_gps = findViewById(R.id.button_get_gps);
 
-        this.button_test_gps.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                GPS gps = GPS.getInstance(view.getContext());
-                if (!gps.isLocationProviderEnabled()) {
-                    setNotification("failed to find an enabled location provider");
-                    return;
-                }
-
-                Location location = gps.getLocation();
-                GoogleRouting gr = GoogleRouting.getInstance(view.getContext());
-                gr.CoordinatesToAddress(location);
-                setLocation(location);
+        button_test_gps.setOnClickListener(view -> {
+            GPS gps = GPS.getInstance(view.getContext());
+            if (!gps.isLocationProviderEnabled()) {
+                setNotification("failed to find an enabled location provider");
+                return;
             }
+
+            Location location = gps.getLocation();
+            GoogleRouting gr = GoogleRouting.getInstance(view.getContext());
+            gr.CoordinatesToAddress(location);
+            setLocation(location);
         });
 
         // text to speech
-        TTS tts = TTS.getTTS(getApplicationContext());
-        EditText ed1=(EditText)findViewById(R.id.editTextSpeak);
-        Button b1=(Button)findViewById(R.id.buttonRead);
-        b1.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                tts.textToVoice(ed1.getText().toString());
-            }
-        });
+        TTS tts = TTS.getTTS(getApplicationContext(), MainActivity.this);
+        EditText ed1 = findViewById(R.id.editTextSpeak);
+        Button b1 = findViewById(R.id.buttonRead);
+        b1.setOnClickListener(view -> tts.textToVoice(ed1.getText().toString()));
     }
 
     private void initBluetoothService() {
-        this.bluetooth_conn_status = findViewById(R.id.bluetooth_conn_status);
-        this.bt_conn_button = findViewById(R.id.bt_conn_button);
-        this.bt_service = new BluetoothService(this.bluetooth_conn_status, this.bt_conn_button, MainActivity.this);
+        // connect to bluetooth
+        TextView bluetooth_conn_status = findViewById(R.id.bluetooth_conn_status);
+        Button bt_conn_button = findViewById(R.id.bt_conn_button);
+        this.bt_service = new BluetoothService(bluetooth_conn_status, bt_conn_button, MainActivity.this);
         this.bt_service.getBtPermissions();
-        this.bt_conn_button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                bt_service.connectToPi(PI_NAME);
-            }
-        });
+        bt_conn_button.setOnClickListener(view -> bt_service.connectToPi(PI_NAME));
     }
 
     @SuppressLint("ClickableViewAccessibility")
     private void initVoiceInputService() {
         this.voiceInputResult = findViewById(R.id.button_voice_input_result);
-        this.voiceInputButton = findViewById(R.id.button_voice_input);
+        Button voiceInputButton = findViewById(R.id.button_voice_input);
         this.voiceInputStatus = findViewById(R.id.audio_status);
         this.voiceInputService = VoiceInputService.getInstance(this.voiceInputResult, MainActivity.this);
-        this.voiceInputButton.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_UP:
-                        voiceInputResult.setHint("You will see input here");
-                        voiceInputService.stopListening();
-                        break;
+        voiceInputButton.setOnTouchListener((v, event) -> {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_UP:
+                    voiceInputResult.setHint("You will see input here");
+                    voiceInputService.stopListening();
+                    break;
 
-                    case MotionEvent.ACTION_DOWN:
-                        voiceInputService.startListening(v.getContext());
-                        voiceInputResult.setText("");
-                        voiceInputResult.setHint("Listening...");
-                        break;
-                }
-                return false;
+                case MotionEvent.ACTION_DOWN:
+                    voiceInputService.startListening();
+                    voiceInputResult.setText("");
+                    voiceInputResult.setHint("Listening...");
+                    break;
             }
+            return false;
         });
     }
-
 
     private void setNotification(String message) {
         tv_notification.setText(message);
@@ -189,23 +169,5 @@ public class MainActivity extends AppCompatActivity {
         tv_location.setText(s);
     }
 
-    // gps
-    private TextView tv_notification;
-    private TextView tv_location;
-    private Button button_test_gps;
-
-    // voice input
-    private VoiceInputService voiceInputService;
-    private TextView voiceInputStatus;
-    private TextView voiceInputResult;
-    private Button voiceInputButton;
-
-    // connect to bluetooth
-    private TextView bluetooth_conn_status;
-    private Button bt_conn_button;
-    private BluetoothService bt_service;
-    private final String PI_NAME = "raspberrypi-61";
-
     // text to speech
-    private TTS tts;
 }

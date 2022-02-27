@@ -1,6 +1,5 @@
 package com.fydp.smartcane;
 
-import android.content.Context;
 import android.util.Log;
 
 import org.json.JSONArray;

@@ -12,14 +12,16 @@ import org.jsoup.Jsoup;
 import java.util.Hashtable;
 
 public class NavigationThread implements Runnable {
-    private String dest;
+    private final String dest;
+    private final Context mContext;
+    private final ProgramControl mPrgCtrl;
     private GoogleRouting routing;
     private GPS gps;
-    private Context mContext;
 
-    public NavigationThread(String dest, Context context) {
+    public NavigationThread(String dest, Context context, ProgramControl programControl) {
         this.dest = dest;
         this.mContext = context;
+        this.mPrgCtrl = programControl;
     }
 
     public String html2text(String html) {
@@ -29,12 +31,12 @@ public class NavigationThread implements Runnable {
     @Override
     public void run() {
         boolean ifStart = false;
-        String lastNavigationText;
+        String lastNavigationText = null;
         Hashtable<String, Boolean> duplicateSteps = new Hashtable<>();
-        while(true) {
+        while (mPrgCtrl.mCurrState == ProgramState.IN_NAVIGATION) {
             Log.i("Navigation Thread", "Start getting current location");
-            Location currrent_location = getGps().getLocation();
-            HttpThread t = getRouting().GetDirectionByGoogleAPI(currrent_location, dest);
+            Location current_location = getGps().getLocation();
+            HttpThread t = getRouting().GetDirectionByGoogleAPI(current_location, dest);
             try {
                 t.threadWrapper.join();
             } catch (InterruptedException e) {
@@ -68,14 +70,14 @@ public class NavigationThread implements Runnable {
                             duration.getString("text")
                     );
 
-                    TTS.getTTS(mContext).textToVoice(distance_duration_text);
+                    TTS.getTTS().textToVoice(distance_duration_text);
                     ifStart = true;
                 }
 
                 String text_instruction = html2text(first_step.getString("html_instructions"));
                 if (!duplicateSteps.containsKey(text_instruction)) {
                     duplicateSteps.put(text_instruction, true);
-                    TTS.getTTS(mContext).textToVoice(String.format(
+                    TTS.getTTS().textToVoice(String.format(
                             "%s for %s in %s",
                             text_instruction,
                             first_step.getJSONObject("distance").getString("text"),
@@ -92,7 +94,7 @@ public class NavigationThread implements Runnable {
                 break;
             }
         }
-        TTS.getTTS(mContext).textToVoice(lastNavigationText);
+        TTS.getTTS().textToVoice(lastNavigationText);
     }
 
     private GoogleRouting getRouting() {

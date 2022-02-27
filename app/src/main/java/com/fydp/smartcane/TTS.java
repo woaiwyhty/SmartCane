@@ -1,50 +1,51 @@
 package com.fydp.smartcane;
 
+import android.app.Activity;
 import android.content.Context;
 import android.speech.tts.TextToSpeech;
+import android.widget.Toast;
 
 import java.util.Locale;
-
-import android.widget.Toast;
 
 public class TTS {
     private static TTS mInstance = null;
     private static TextToSpeech mTTS;
-    private Context mContext;
+    private final Context mContext;
+    private final Activity mActivity;
 
-    private TTS(Context pContext) {
+    private TTS(Context pContext, Activity pActivity) {
         mContext = pContext;
-        mTTS = new TextToSpeech(mContext.getApplicationContext(), new TextToSpeech.OnInitListener() {
-            @Override
-            public void onInit(int status) {
-                if(status == TextToSpeech.SUCCESS) {
-                    mTTS.setLanguage(Locale.UK);
-                    Toast.makeText(mContext.getApplicationContext(), "TTS Started", Toast.LENGTH_SHORT).show();
-                }
-                else
-                {
-                    Toast.makeText(mContext.getApplicationContext(), "TTS Failed", Toast.LENGTH_SHORT).show();
-                }
+        mActivity = pActivity;
+        mTTS = new TextToSpeech(mContext.getApplicationContext(), status -> {
+            if (status == TextToSpeech.SUCCESS) {
+                mTTS.setLanguage(Locale.UK);
+                mActivity.runOnUiThread(() -> Toast.makeText(mContext.getApplicationContext(), "TTS Started", Toast.LENGTH_SHORT).show());
+            } else {
+                mActivity.runOnUiThread(() -> Toast.makeText(mContext.getApplicationContext(), "TTS Failed", Toast.LENGTH_SHORT).show());
             }
         });
     }
 
-    public static TTS getTTS(Context pContext) {
+    public static TTS getTTS(Context pContext, Activity pActivity) {
         if (mInstance == null) {
-            mInstance = new TTS(pContext);
+            mInstance = new TTS(pContext, pActivity);
+        }
+        return mInstance;
+    }
+
+    public static TTS getTTS() {
+        if (mInstance == null) {
+            throw new InternalError();
         }
         return mInstance;
     }
 
     public void textToVoice(String pString) {
         int result = mTTS.speak(pString, TextToSpeech.QUEUE_ADD, null, null);
-        if (result != 0)
-        {
-            Toast.makeText(mContext.getApplicationContext(), "Failed", Toast.LENGTH_SHORT).show();
-        }
-        else
-        {
-            Toast.makeText(mContext.getApplicationContext(), pString, Toast.LENGTH_SHORT).show();
+        if (result != 0) {
+            mActivity.runOnUiThread(() -> Toast.makeText(mContext.getApplicationContext(), "Failed", Toast.LENGTH_SHORT).show());
+        } else {
+            mActivity.runOnUiThread(() -> Toast.makeText(mContext.getApplicationContext(), pString, Toast.LENGTH_SHORT).show());
         }
     }
 }

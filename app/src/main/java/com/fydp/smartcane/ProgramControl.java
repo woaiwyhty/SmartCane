@@ -1,19 +1,35 @@
 package com.fydp.smartcane;
 
 import android.content.Context;
-import android.location.Location;
-import android.util.Log;
+
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+enum ProgramState {
+    IDLE,
+    CONFIRMING_START,
+    PENDING_CITY,
+    PENDING_STREET,
+    READY_NAVIGATION,
+    IN_NAVIGATION,
+    CONFIRMING_END,
+    CONFIRMING_INPUT
+}
 
 public class ProgramControl {
-    private static String TAG = ProgramControl.class.getSimpleName();
     private static ProgramControl mInstance;
-    private Context mContext;
-    private GoogleRouting routing;
-    private GPS gps;
-    private boolean inNavigation = false;
-    private NavigationThread nvThread;
+    private final Context mContext;
+    public ProgramState mCurrState;
+    ArrayList<String> mPossibleInputs;
+    int mIndex;
+    private Thread nvThread;
+    private String mCity;
+    private String mAddress;
+    private ProgramState mPrevState;
 
     private ProgramControl(Context context) {
+        this.mCurrState = ProgramState.IDLE;
         this.mContext = context;
     }
 
@@ -24,40 +40,148 @@ public class ProgramControl {
         return mInstance;
     }
 
-    public void StartNavigation(String dest) {
-        // assume that dest is in correct format such as 258+King+Street+Waterloo+ON
-//        Log.i(ProgramControl.TAG, "Start getting current location");
-//        Location currrent_location = getGps().getLocation();
-//        HttpThread t = getRouting().GetDirectionByGoogleAPI(currrent_location, dest);
-        if (inNavigation) {
-            return;
+    private static boolean voiceRegexCheck(String patternRegex, ArrayList<String> voiceInput) {
+        Pattern pattern = Pattern.compile(patternRegex, Pattern.CASE_INSENSITIVE);
+        for (String result : voiceInput) {
+            Matcher matcher = pattern.matcher(result);
+            if (matcher.find()) {
+                return true;
+            }
         }
-
-        inNavigation = true;
-        nvThread = new NavigationThread(dest, this.mContext);
-        nvThread.run();
+        return false;
     }
 
-    public void EndNavigation() {
-        if (!inNavigation) {
-            return;
-        }
-
-        inNavigation = false;
-        // TODO: add a proper way to terminate the navigation thread
+    private void askForStreet() {
+        mCurrState = ProgramState.PENDING_STREET;
+        TTS.getTTS().textToVoice("which street address do you want to walk to?");
     }
 
-    private GoogleRouting getRouting() {
-        if (routing == null) {
-            routing = GoogleRouting.getInstance(this.mContext);
-        }
-        return routing;
+    private void askForCity() {
+        mCurrState = ProgramState.PENDING_CITY;
+        TTS.getTTS().textToVoice("Which city and province do you want to walk to?");
     }
 
-    private GPS getGps() {
-        if (gps == null) {
-            gps = GPS.getInstance(this.mContext);
+    private void gotCity(String result) {
+        mCity = result;
+    }
+
+    private void gotStreet(String result) {
+        mAddress = result + ", " + mCity;
+    }
+
+    private void confirmAddress() {
+        mCurrState = ProgramState.READY_NAVIGATION;
+        TTS.getTTS().textToVoice("is your destination: " + mAddress);
+        TTS.getTTS().textToVoice("please say yes or no");
+    }
+
+    private void startNavigation() {
+        mCurrState = ProgramState.IN_NAVIGATION;
+        TTS.getTTS().textToVoice("Navigation starting now.");
+        nvThread = new Thread(new NavigationThread(mAddress, this.mContext, mInstance));
+        nvThread.start();
+    }
+
+    private void endNavigation() {
+        if (mCurrState == ProgramState.IN_NAVIGATION) {
+            nvThread.interrupt();
         }
-        return gps;
+        mCurrState = ProgramState.IDLE;
+        TTS.getTTS().textToVoice("Navigation just ended.");
+    }
+
+    public void processVoiceInput(ArrayList<String> voiceInput) {
+        switch (mCurrState) {
+            case IDLE:
+                confirmingStart();
+                break;
+            case CONFIRMING_START:
+                if (voiceRegexCheck(".*(yes|yeah).*", voiceInput)) {
+                    askForCity();
+                } else {
+                    endNavigation();
+                }
+                break;
+            case PENDING_CITY:
+            case PENDING_STREET:
+                confirmingVoiceInput(voiceInput);
+                break;
+            case CONFIRMING_INPUT:
+                if (voiceRegexCheck(".*(yes|yeah).*", voiceInput)) {
+                    confirmedVoiceInput();
+                } else {
+                    if (mIndex >= mPossibleInputs.size() || mIndex >= 3) {
+                        repeatPrevState();
+                    } else {
+                        checkNextPossibleInput();
+                    }
+                }
+                break;
+            case READY_NAVIGATION:
+                if (voiceRegexCheck(".*(yes|yeah).*", voiceInput)) {
+                    startNavigation();
+                } else if (voiceRegexCheck(".*(no|nope).*", voiceInput)) {
+                    askForCity();
+                } else {
+                    endNavigation();
+                }
+                break;
+            case IN_NAVIGATION:
+                confirmingEnd();
+                break;
+            case CONFIRMING_END:
+                if (voiceRegexCheck(".*(yes|yeah).*", voiceInput)) {
+                    endNavigation();
+                } else {
+                    continueNavigation();
+                }
+                break;
+        }
+    }
+
+    private void repeatPrevState() {
+        if (mPrevState == ProgramState.PENDING_CITY) {
+            askForCity();
+        } else if (mPrevState == ProgramState.PENDING_STREET) {
+            askForStreet();
+        }
+    }
+
+    private void confirmedVoiceInput() {
+        if (mPrevState == ProgramState.PENDING_CITY) {
+            gotCity(mPossibleInputs.get(mIndex - 1));
+            askForStreet();
+        } else if (mPrevState == ProgramState.PENDING_STREET) {
+            gotStreet(mPossibleInputs.get(mIndex - 1));
+            confirmAddress();
+        }
+    }
+
+    private void confirmingVoiceInput(ArrayList<String> voiceInput) {
+        mPrevState = mCurrState;
+        mCurrState = ProgramState.CONFIRMING_INPUT;
+        mIndex = 0;
+        mPossibleInputs = voiceInput;
+        checkNextPossibleInput();
+    }
+
+    private void checkNextPossibleInput() {
+        TTS.getTTS().textToVoice("Did you say " + mPossibleInputs.get(mIndex));
+        mIndex++;
+    }
+
+    private void continueNavigation() {
+        mCurrState = ProgramState.IN_NAVIGATION;
+        TTS.getTTS().textToVoice("Navigation will continue.");
+    }
+
+    private void confirmingEnd() {
+        TTS.getTTS().textToVoice("Do you want to end navigation? Please say yes or no.");
+        mCurrState = ProgramState.CONFIRMING_END;
+    }
+
+    private void confirmingStart() {
+        TTS.getTTS().textToVoice("Do you want to start navigation? Please say yes or no.");
+        mCurrState = ProgramState.CONFIRMING_START;
     }
 }

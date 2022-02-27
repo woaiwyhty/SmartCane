@@ -1,40 +1,24 @@
 package com.fydp.smartcane;
 
-import android.Manifest;
-import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.util.Log;
-import android.media.AudioManager;
-import android.media.AudioManager;
-
-import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
-
-import androidx.annotation.Nullable;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 import java.util.Locale;
 
 public final class VoiceInputService {
     private static VoiceInputService INSTANCE = null;
+    private final TextView voiceInputResult;
+    private final Context mContext;
+    private final String TAG = "VoiceInputService";
     private SpeechRecognizer speechRecognizer;
     private Intent speechRecognizerIntent;
-    private TextView voiceInputResult;
-    private Context mContext;
-
-    private final String TAG = "VoiceInputService";
 
     private VoiceInputService(TextView voiceInputResult, Context context) {
         this.voiceInputResult = voiceInputResult;
@@ -48,10 +32,10 @@ public final class VoiceInputService {
         if (INSTANCE == null) {
             INSTANCE = new VoiceInputService(voiceInputResult, context.getApplicationContext());
         }
-        return(INSTANCE);
+        return (INSTANCE);
     }
 
-    public void startListening(Context context) {
+    public void startListening() {
         Log.d(TAG, "start listening");
         this.speechRecognizer.startListening(speechRecognizerIntent);
     }
@@ -96,7 +80,7 @@ public final class VoiceInputService {
 
                 @Override
                 public void onError(int i) {
-
+                    TTS.getTTS().textToVoice("I did not hear you");
                 }
 
                 @Override
@@ -105,18 +89,10 @@ public final class VoiceInputService {
                     ArrayList<String> matches = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                     Log.d(TAG, String.valueOf(matches));
                     //displaying the first match
-                    if (matches != null){
+                    if (matches != null) {
                         voiceInputResult.setText(matches.get(0));
-                        String result = matches.get(0);
-                        if (result.contains("start navigating")) {
-                            // TODO: add address parsing
-                            String dest = "258 King St N Waterloo";
-                            ProgramControl.getInstance(mContext).StartNavigation(dest);
-                        } else if (result.contains("end navigating")) {
-                            ProgramControl.getInstance(mContext).EndNavigation();
-                        } else {
-                            TTS.getTTS(mContext).textToVoice("Sorry, we couldn't understand");
-                        }
+//                        String result = matches.get(0);
+                        ProgramControl.getInstance(mContext).processVoiceInput(matches);
                     } else {
                         voiceInputResult.setText("Result Not Available");
                     }
@@ -137,8 +113,9 @@ public final class VoiceInputService {
 
     private void setRecogniserIntent() {
         this.speechRecognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        this.speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        this.speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         this.speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
     }
+
 
 }
