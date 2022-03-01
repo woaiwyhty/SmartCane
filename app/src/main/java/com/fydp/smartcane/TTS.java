@@ -18,7 +18,7 @@ public class TTS {
         mActivity = pActivity;
         mTTS = new TextToSpeech(mContext.getApplicationContext(), status -> {
             if (status == TextToSpeech.SUCCESS) {
-                mTTS.setLanguage(Locale.UK);
+                mTTS.setLanguage(Locale.US);
                 mActivity.runOnUiThread(() -> Toast.makeText(mContext.getApplicationContext(), "TTS Started", Toast.LENGTH_SHORT).show());
             } else {
                 mActivity.runOnUiThread(() -> Toast.makeText(mContext.getApplicationContext(), "TTS Failed", Toast.LENGTH_SHORT).show());

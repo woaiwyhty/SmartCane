@@ -26,6 +26,7 @@ public class BluetoothService {
     // TODO: add voice output for all changes to bt_status
 
     private TextView bt_status;
+    private TextView voice_input_status;
     private Button bt_conn_button;
     private Context context;
 
@@ -40,24 +41,26 @@ public class BluetoothService {
     private boolean emg_on;
     private boolean emg_current_state;
 
-    private final int BT_CONN_REQ_CODE = 1;
     private final String TAG = "BluetoothService";
 
-    public BluetoothService(TextView bt_status, Button bt_conn_button, Context context) {
+    public BluetoothService(TextView bt_status, Button bt_conn_button, TextView voice_input_status, Context context) {
         this.bt_status = bt_status;
+        this.voice_input_status = voice_input_status;
         this.bt_conn_button = bt_conn_button;
         this.context = context;
         this.bt_adapter = BluetoothAdapter.getDefaultAdapter();
         this.tts = TTS.getTTS();
         this.emg_on = false;
         this.emg_current_state = false;
-        this.voiceInputService = VoiceInputService.getInstance(this.bt_status, context);
+        this.voice_input_status.setText("testing connected");
+        this.voiceInputService = VoiceInputService.getInstance(this.voice_input_status, context);
     }
 
     public boolean hasBtPermission() {
         return (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED
                 && ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED);
     }
+    @SuppressLint("SetTextI18n")
     public void getBtPermissions() {
         if (!hasBtPermission()) {
             this.bt_status.setText("requesting bt permissions");
@@ -67,6 +70,7 @@ public class BluetoothService {
                     Manifest.permission.BLUETOOTH_ADMIN,
                     Manifest.permission.BLUETOOTH,
             };
+            int BT_CONN_REQ_CODE = 1;
             ActivityCompat.requestPermissions((Activity) context, bt_permissions, BT_CONN_REQ_CODE);
         } else {
             this.bt_status.setText("bt permission already granted");
@@ -75,7 +79,7 @@ public class BluetoothService {
         }
     }
 
-    @SuppressLint("MissingPermission")
+    @SuppressLint({"MissingPermission", "SetTextI18n"})
     private boolean findPi(String pi_name) {
         if (!hasBtPermission()) {
             this.bt_status.setText("bt permission not granted, please grant permission and try again");
@@ -108,7 +112,7 @@ public class BluetoothService {
         return false;
     }
 
-    @SuppressLint("MissingPermission")
+    @SuppressLint({"MissingPermission", "SetTextI18n"})
     public void connectToPi(String pi_name) {
         bt_conn_button.setEnabled(false);
 
@@ -177,6 +181,7 @@ public class BluetoothService {
 
     private class emergencyProtocolThread extends Thread {
 
+        @SuppressLint("SetTextI18n")
         public void run(){
             try{
                 if (emg_on == false){
@@ -258,7 +263,7 @@ public class BluetoothService {
                             });
                         }
 
-                        if(!parsedMsg[1].equals("false") || !parsedMsg[1].equals("true")){
+                        if(!parsedMsg[1].equals("false") && !parsedMsg[1].equals("true")){
                             Log.d(TAG, "Invalid emergency button status.");
                             throw new Exception("Invalid emergency button status.");
                         }
@@ -297,38 +302,32 @@ public class BluetoothService {
                     Log.d(TAG, "original msg: " + parsedMsg[0] + " : " + parsedMsg[1] + " : " + parsedMsg[2] + " : " + parsedMsg[3]);
                     break;
                 case "pressToSpeak":
-                    boolean pressToSpeak;
-
                     // TODO: press to speak working. Need to connect the input voice msg to follow up protocols
                     if(parsedMsg[1].equals("true")){
                         // This is a Dummy test of Voice Input start listening
-                        pressToSpeak = true;
                         ((Activity) context).runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
                                 voiceInputService.startListening();
-                                bt_status.setText("");
-                                bt_status.setHint("Listening...");
+                                voice_input_status.setText("");
+                                voice_input_status.setHint("Listening...");
                             }
                         });
                     }else if(parsedMsg[1].equals("false")){
                         // This is a Dummy test of Voice Input stop listening
-                        pressToSpeak = false;
                         ((Activity) context).runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                bt_status.setHint("You will see input here");
+                                voice_input_status.setHint("You will see input here");
                                 voiceInputService.stopListening();
                             }
                         });
-                    }else{
+                    } else {
                         throw new Exception("Invalid press to speak status.");
                     }
                     break;
                 case "lowBattery":
-                    boolean bettery_low;
                     if(parsedMsg[1].equals("true")){
-                        bettery_low = true;
                         ((Activity) context).runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
@@ -337,18 +336,7 @@ public class BluetoothService {
                                 Log.d(TAG, "Battery low. Please charge now.");
                             }
                         });
-                    }else if(parsedMsg[1].equals("true")){
-                        bettery_low = false;
-                        ((Activity) context).runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                bt_status.setText("bettery_low = false");
-                                tts.textToVoice("bettery_low = false");
-                                Log.d(TAG, "bettery_low = false");
-                            }
-                        });
                     }
-
                     break;
                 default:
                     // unrecognized type

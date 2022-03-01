@@ -28,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
     private VoiceInputService voiceInputService;
     private TextView voiceInputStatus;
     private TextView voiceInputResult;
+    private TextView bluetoothConnStatus;
     private BluetoothService bt_service;
 
     @RequiresApi(api = Build.VERSION_CODES.N)
@@ -129,18 +130,19 @@ public class MainActivity extends AppCompatActivity {
 
     private void initBluetoothService() {
         // connect to bluetooth
-        TextView bluetooth_conn_status = findViewById(R.id.bluetooth_conn_status);
+        this.bluetoothConnStatus = findViewById(R.id.bluetooth_conn_status);
+        this.voiceInputResult = findViewById(R.id.voice_input_result);
         Button bt_conn_button = findViewById(R.id.bt_conn_button);
-        this.bt_service = new BluetoothService(bluetooth_conn_status, bt_conn_button, MainActivity.this);
+        this.bt_service = new BluetoothService(this.bluetoothConnStatus, bt_conn_button, this.voiceInputResult, MainActivity.this);
         this.bt_service.getBtPermissions();
         bt_conn_button.setOnClickListener(view -> bt_service.connectToPi(PI_NAME));
     }
 
     @SuppressLint("ClickableViewAccessibility")
     private void initVoiceInputService() {
-        this.voiceInputResult = findViewById(R.id.button_voice_input_result);
         Button voiceInputButton = findViewById(R.id.button_voice_input);
         this.voiceInputStatus = findViewById(R.id.audio_status);
+        this.voiceInputResult = findViewById(R.id.voice_input_result);
         this.voiceInputService = VoiceInputService.getInstance(this.voiceInputResult, MainActivity.this);
         voiceInputButton.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {

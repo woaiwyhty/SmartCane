@@ -6,4 +6,6 @@
     <string name="audio_status">Audio Status</string>
     <string name="bluetooth_connection_status">Bluetooth Connection Status</string>
     <string name="gps_status">GPS Status</string>
+    <string name="voice_input_status">Voice Input Status</string>
+    <string name="voice_input_result">Voice Input Result</string>
 </resources>
