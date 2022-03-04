@@ -39,9 +39,9 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-
         initContentMain();
         initPermission();
+        initObjectDetection();
         initBluetoothService();
         initVoiceInputService();
     }
@@ -136,6 +136,10 @@ public class MainActivity extends AppCompatActivity {
         this.bt_service = new BluetoothService(this.bluetoothConnStatus, bt_conn_button, this.voiceInputResult, MainActivity.this);
         this.bt_service.getBtPermissions();
         bt_conn_button.setOnClickListener(view -> bt_service.connectToPi(PI_NAME));
+    }
+
+    private void initObjectDetection(){
+        new ObjectDetectionService();
     }
 
     @SuppressLint("ClickableViewAccessibility")

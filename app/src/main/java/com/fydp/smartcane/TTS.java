@@ -24,6 +24,7 @@ public class TTS {
                 mActivity.runOnUiThread(() -> Toast.makeText(mContext.getApplicationContext(), "TTS Failed", Toast.LENGTH_SHORT).show());
             }
         });
+        addSpeech("Beep Beep Beep Beep Beep", R.raw.alarm_classic_short);
     }
 
     public static TTS getTTS(Context pContext, Activity pActivity) {
@@ -46,6 +47,13 @@ public class TTS {
             mActivity.runOnUiThread(() -> Toast.makeText(mContext.getApplicationContext(), "Failed", Toast.LENGTH_SHORT).show());
         } else {
             mActivity.runOnUiThread(() -> Toast.makeText(mContext.getApplicationContext(), pString, Toast.LENGTH_SHORT).show());
+        }
+    }
+
+    public void addSpeech(String text, int resourceId) {
+        int result = mTTS.addSpeech(text, "com.fydp.smartcane", resourceId);
+        if (result != 0) {
+            mActivity.runOnUiThread(() -> Toast.makeText(mContext.getApplicationContext(), "Add speech Failed", Toast.LENGTH_SHORT).show());
         }
     }
 }

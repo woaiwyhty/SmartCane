@@ -35,6 +35,7 @@ public class BluetoothService {
     private BluetoothDevice bt_pi;
 
     private TTS tts;
+    private ObjectDetectionService objectDetectionService;
 
     private VoiceInputService voiceInputService;
 
@@ -48,6 +49,7 @@ public class BluetoothService {
         this.voice_input_status = voice_input_status;
         this.bt_conn_button = bt_conn_button;
         this.context = context;
+        this.objectDetectionService = ObjectDetectionService.getInstance();
         this.bt_adapter = BluetoothAdapter.getDefaultAdapter();
         this.tts = TTS.getTTS();
         this.emg_on = false;
@@ -273,33 +275,7 @@ public class BluetoothService {
                     break;
                 case "lidar":
                     float distance_unit_cm = Float.parseFloat(parsedMsg[1]);
-                    // might be useful
-                    float lidar_strength = Float.parseFloat(parsedMsg[2]);
-                    float lidar_temperature = Float.parseFloat(parsedMsg[3]);
-
-
-                    // TODO: need to be connected to distance alarming/OpenCV service
-                    // Note: lidar sending speed REALLY FAST! careful about queue etc
-                    // This is a Dummy block for testing. Need to be changed to meaningful calls
-//                    if (distance_unit_cm < 20){
-////                        ((Activity) context).runOnUiThread(new Runnable() {
-////                            @Override
-////                            public void run() {
-////                                bt_status.setText(
-////                                        "Lidar: distance = " + distance_unit_cm + " cm" +
-////                                                ", strength = " + lidar_strength +
-////                                                ", temperature = " + lidar_temperature);
-////                            }
-////                        });
-//                        Log.d(TAG, "Lidar: distance = " + distance_unit_cm + " cm" +
-//                                        ", strength = " + lidar_strength +
-//                                        ", temperature = " + lidar_temperature);
-//                        Log.d(TAG, "original msg: " + parsedMsg[0] + " : " + parsedMsg[1] + " : " + parsedMsg[2] + " : " + parsedMsg[3]);
-//                    }
-                    Log.d(TAG, "Lidar: distance = " + distance_unit_cm + " cm" +
-                            ", strength = " + lidar_strength +
-                            ", temperature = " + lidar_temperature);
-                    Log.d(TAG, "original msg: " + parsedMsg[0] + " : " + parsedMsg[1] + " : " + parsedMsg[2] + " : " + parsedMsg[3]);
+                    objectDetectionService.logState(distance_unit_cm);
                     break;
                 case "pressToSpeak":
                     // TODO: press to speak working. Need to connect the input voice msg to follow up protocols
