@@ -4,10 +4,10 @@ import android.util.Log;
 
 public class ObjectDetectionService {
     enum ObjectState {
-        IDLE(1100),              // d > 11m
-        LEVEL_SUPER_FAR(600),    // 6m < d <= 11m
-        LEVEL_APPROACHING(200),  // 1m < d <= 5m 提前预判空间
-        LEVEL_CLOSE(0);          // 0m < d <= 1m
+        IDLE(1100),              // d > 10m + 1m预判空间
+        LEVEL_SUPER_FAR(500),    // 4m < d <= 10m
+        LEVEL_APPROACHING(300),  // 2m < d <= 4m
+        LEVEL_CLOSE(0);          // 0m < d <= 2m
 
         int distance;
         ObjectState(int d) {
@@ -43,7 +43,7 @@ public class ObjectDetectionService {
         }
         // compute the incoming state based on distance
         ObjectState incomingState = this.computeState(distance);
-        int THRESHOLD = 50;
+        int THRESHOLD = 30;
         upperBound = distance + THRESHOLD;
         lowerBound = distance - THRESHOLD;
         Log.d("ObjectDetectionService", "Lidar: distance = " + distance + " cm, state: " + incomingState );
@@ -73,16 +73,13 @@ public class ObjectDetectionService {
     private void playWarning(ObjectState state) {
         switch (state) {
             case LEVEL_SUPER_FAR:
-                // 5 < d < 10
                 TTS.getTTS().textToVoice("10 meters alert");
                 break;
             case LEVEL_APPROACHING:
-                // 2 < d < 5
-                TTS.getTTS().textToVoice("5 meters alert.");
+                TTS.getTTS().textToVoice("Short Beep");
                 break;
             case LEVEL_CLOSE:
-                // d < 2
-                TTS.getTTS().textToVoice("Beep Beep Beep Beep Beep");
+                TTS.getTTS().textToVoice("Long Beep");
                 break;
             default:
                 break;

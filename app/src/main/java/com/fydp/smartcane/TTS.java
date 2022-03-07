@@ -24,7 +24,8 @@ public class TTS {
                 mActivity.runOnUiThread(() -> Toast.makeText(mContext.getApplicationContext(), "TTS Failed", Toast.LENGTH_SHORT).show());
             }
         });
-        addSpeech("Beep Beep Beep Beep Beep", R.raw.alarm_classic_short);
+        addSpeech("Long Beep", R.raw.long_b);
+        addSpeech("Short Beep", R.raw.short_b);
     }
 
     public static TTS getTTS(Context pContext, Activity pActivity) {
