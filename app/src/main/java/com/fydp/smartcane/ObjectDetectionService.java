@@ -4,9 +4,8 @@ import android.util.Log;
 
 public class ObjectDetectionService {
     enum ObjectState {
-        IDLE(1100),              // d > 10m + 1m预判空间
-        LEVEL_SUPER_FAR(500),    // 4m < d <= 10m
-        LEVEL_APPROACHING(300),  // 2m < d <= 4m
+        IDLE(600),    // 5m < d
+        LEVEL_APPROACHING(300),  // 2m < d <= 5m
         LEVEL_CLOSE(0);          // 0m < d <= 2m
 
         int distance;
@@ -18,13 +17,11 @@ public class ObjectDetectionService {
         }
     }
 
-    private ObjectState lastState;
     private float upperBound;
     private float lowerBound;
     private static ObjectDetectionService INSTANCE = null;
 
     public ObjectDetectionService() {
-        lastState = ObjectState.IDLE;
         upperBound = 10000;
         lowerBound = 10000;
     }
@@ -43,14 +40,11 @@ public class ObjectDetectionService {
         }
         // compute the incoming state based on distance
         ObjectState incomingState = this.computeState(distance);
-        int THRESHOLD = 30;
+        int THRESHOLD = 40;
         upperBound = distance + THRESHOLD;
         lowerBound = distance - THRESHOLD;
         Log.d("ObjectDetectionService", "Lidar: distance = " + distance + " cm, state: " + incomingState );
-        if (lastState != incomingState) {
-            playWarning(incomingState);
-            lastState = incomingState;
-        }
+        playWarning(incomingState);
     }
 
     /*
@@ -60,8 +54,6 @@ public class ObjectDetectionService {
         ObjectState nextState;
         if (distance > ObjectState.IDLE.getDistance()) {
             nextState = ObjectState.IDLE;
-        } else if (distance > ObjectState.LEVEL_SUPER_FAR.getDistance()) {
-            nextState = ObjectState.LEVEL_SUPER_FAR;
         } else if (distance > ObjectState.LEVEL_APPROACHING.getDistance()) {
             nextState = ObjectState.LEVEL_APPROACHING;
         } else {
@@ -72,9 +64,6 @@ public class ObjectDetectionService {
 
     private void playWarning(ObjectState state) {
         switch (state) {
-            case LEVEL_SUPER_FAR:
-                TTS.getTTS().textToVoice("10 meters alert");
-                break;
             case LEVEL_APPROACHING:
                 TTS.getTTS().textToVoice("Short Beep");
                 break;
