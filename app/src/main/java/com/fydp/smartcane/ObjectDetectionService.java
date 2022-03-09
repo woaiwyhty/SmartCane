@@ -2,6 +2,9 @@ package com.fydp.smartcane;
 
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ObjectDetectionService {
     enum ObjectState {
         IDLE(600),    // 5m < d
@@ -17,13 +20,12 @@ public class ObjectDetectionService {
         }
     }
 
-    private float upperBound;
-    private float lowerBound;
+    private List<Float> queue;
     private static ObjectDetectionService INSTANCE = null;
+    private final int QUEUE_SIZE = 33;
 
     public ObjectDetectionService() {
-        upperBound = 10000;
-        lowerBound = 10000;
+        queue = new ArrayList<>();
     }
 
     public static ObjectDetectionService getInstance() {
@@ -34,23 +36,22 @@ public class ObjectDetectionService {
     }
 
     public void logState(float distance) {
-        // within range
-        if (distance <= upperBound && distance >= lowerBound) {
-            return;
-        }
         // compute the incoming state based on distance
-        ObjectState incomingState = this.computeState(distance);
-        int THRESHOLD = 40;
-        upperBound = distance + THRESHOLD;
-        lowerBound = distance - THRESHOLD;
-        Log.d("ObjectDetectionService", "Lidar: distance = " + distance + " cm, state: " + incomingState );
-        playWarning(incomingState);
+        if (queue.size() >= QUEUE_SIZE) {
+            Double avg = queue.stream().mapToDouble(d -> d).average().orElse(0.0);
+            ObjectState incomingState = this.computeState(avg);
+            playWarning(incomingState);
+            Log.d("ObjectDetectionService", "Lidar: distance = " + distance + " cm, avg: " + avg + " cm, state: " + incomingState );
+            queue.clear();
+        }
+
+        queue.add(distance);
     }
 
     /*
     *   Map distance to state
     */
-    private ObjectState computeState(float distance) {
+    private ObjectState computeState(Double distance) {
         ObjectState nextState;
         if (distance > ObjectState.IDLE.getDistance()) {
             nextState = ObjectState.IDLE;
