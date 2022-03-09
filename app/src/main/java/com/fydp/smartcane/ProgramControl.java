@@ -3,6 +3,8 @@ package com.fydp.smartcane;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import androidx.annotation.NonNull;
+
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,6 +32,7 @@ public class ProgramControl {
     private String mAddress;
     private ProgramState mPrevState;
     private boolean saveToHomeThisAddress = false;
+    private boolean checkingHomeAddress = false;
     public static final String myPref = "preference";
 
 
@@ -45,7 +48,7 @@ public class ProgramControl {
         return mInstance;
     }
 
-    private static boolean voiceRegexCheck(String patternRegex, ArrayList<String> voiceInput) {
+    private static boolean voiceRegexCheck(String patternRegex, @NonNull ArrayList<String> voiceInput) {
         Pattern pattern = Pattern.compile(patternRegex, Pattern.CASE_INSENSITIVE);
         for (String result : voiceInput) {
             Matcher matcher = pattern.matcher(result);
@@ -76,8 +79,12 @@ public class ProgramControl {
 
     private void confirmAddress() {
         mCurrState = ProgramState.READY_NAVIGATION;
-        TTS.getTTS().textToVoice("is your destination: " + mAddress);
-        TTS.getTTS().textToVoice("please say yes or no");
+        if (checkingHomeAddress) {
+            TTS.getTTS().textToVoice("is your home: " + mAddress);
+        }
+        else {
+            TTS.getTTS().textToVoice("is your destination: " + mAddress);
+        }
     }
 
     private void startNavigation() {
@@ -138,7 +145,13 @@ public class ProgramControl {
                 if (voiceRegexCheck(".*(yes|yeah).*", voiceInput)) {
                     startNavigation();
                 } else if (voiceRegexCheck(".*(no|nope).*", voiceInput)) {
-                    askForCity();
+                    if (checkingHomeAddress) {
+                        checkingHomeAddress = false;
+                        askForHomeAddress();
+                    }
+                    else {
+                        askForCity();
+                    }
                 } else {
                     endNavigation();
                 }
@@ -162,13 +175,16 @@ public class ProgramControl {
             askForHomeAddress();
         }
         else{
-            startNavigation();
+            checkingHomeAddress = true;
+            confirmAddress();
         }
     }
 
     private void askForHomeAddress() {
+        // TODO: delete stored home address here
+
         saveToHomeThisAddress = true;
-        TTS.getTTS().textToVoice("no home address is stored, please tell me.");
+        TTS.getTTS().textToVoice("please tell me your home address.");
         askForCity();
     }
 
@@ -214,12 +230,12 @@ public class ProgramControl {
     }
 
     private void confirmingEnd() {
-        TTS.getTTS().textToVoice("Do you want to end navigation? Please say yes or no.");
+        TTS.getTTS().textToVoice("Do you want to end navigation?");
         mCurrState = ProgramState.CONFIRMING_END;
     }
 
     private void confirmingStart() {
-        TTS.getTTS().textToVoice("Do you want to start navigation? Please say yes or no.");
+        TTS.getTTS().textToVoice("Do you want to start navigation?");
         mCurrState = ProgramState.CONFIRMING_START;
     }
 
