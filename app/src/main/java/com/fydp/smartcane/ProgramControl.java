@@ -14,7 +14,8 @@ enum ProgramState {
     READY_NAVIGATION,
     IN_NAVIGATION,
     CONFIRMING_END,
-    CONFIRMING_INPUT
+    CONFIRMING_INPUT,
+    CONFIRMING_HOME
 }
 
 public class ProgramControl {
@@ -27,6 +28,7 @@ public class ProgramControl {
     private String mCity;
     private String mAddress;
     private ProgramState mPrevState;
+    private boolean saveToHomeThisAddress = false;
 
     private ProgramControl(Context context) {
         this.mCurrState = ProgramState.IDLE;
@@ -77,6 +79,11 @@ public class ProgramControl {
 
     private void startNavigation() {
         mCurrState = ProgramState.IN_NAVIGATION;
+        if (saveToHomeThisAddress) {
+            // TODO: store this address to home
+            TTS.getTTS().textToVoice("home is set to " + mAddress);
+            saveToHomeThisAddress = false;
+        }
         TTS.getTTS().textToVoice("Navigation starting now.");
         nvThread = new Thread(new NavigationThread(mAddress, this.mContext, mInstance));
         nvThread.start();
@@ -97,9 +104,16 @@ public class ProgramControl {
                 break;
             case CONFIRMING_START:
                 if (voiceRegexCheck(".*(yes|yeah).*", voiceInput)) {
-                    askForCity();
+                    checkGoHome();
                 } else {
                     endNavigation();
+                }
+                break;
+            case CONFIRMING_HOME:
+                if (voiceRegexCheck(".*(yes|yeah).*", voiceInput)) {
+                    goHome();
+                } else {
+                    askForCity();
                 }
                 break;
             case PENDING_CITY:
@@ -137,6 +151,28 @@ public class ProgramControl {
                 }
                 break;
         }
+    }
+
+    private void goHome() {
+        // TODO: get stored real home address or if there is none ask for it
+        mAddress = "Eaton Centre, Toronto, Ontario";
+        if (true) {
+            askForHomeAddress();
+        }
+        else{
+            startNavigation();
+        }
+    }
+
+    private void askForHomeAddress() {
+        saveToHomeThisAddress = true;
+        TTS.getTTS().textToVoice("no home address is stored, please tell me.");
+        askForCity();
+    }
+
+    private void checkGoHome() {
+        mCurrState = ProgramState.CONFIRMING_HOME;
+        TTS.getTTS().textToVoice("Do you want to go home?");
     }
 
     private void repeatPrevState() {
