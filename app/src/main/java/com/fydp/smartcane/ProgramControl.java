@@ -1,6 +1,7 @@
 package com.fydp.smartcane;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 
 import java.util.ArrayList;
 import java.util.regex.Matcher;
@@ -29,6 +30,8 @@ public class ProgramControl {
     private String mAddress;
     private ProgramState mPrevState;
     private boolean saveToHomeThisAddress = false;
+    public static final String myPref = "preference";
+
 
     private ProgramControl(Context context) {
         this.mCurrState = ProgramState.IDLE;
@@ -80,7 +83,7 @@ public class ProgramControl {
     private void startNavigation() {
         mCurrState = ProgramState.IN_NAVIGATION;
         if (saveToHomeThisAddress) {
-            // TODO: store this address to home
+            storeHomeToConfig(mAddress);
             TTS.getTTS().textToVoice("home is set to " + mAddress);
             saveToHomeThisAddress = false;
         }
@@ -154,9 +157,8 @@ public class ProgramControl {
     }
 
     private void goHome() {
-        // TODO: get stored real home address or if there is none ask for it
-        mAddress = "Eaton Centre, Toronto, Ontario";
-        if (true) {
+        mAddress = loadHomeFromConfig();
+        if (mAddress == null) {
             askForHomeAddress();
         }
         else{
@@ -219,5 +221,19 @@ public class ProgramControl {
     private void confirmingStart() {
         TTS.getTTS().textToVoice("Do you want to start navigation? Please say yes or no.");
         mCurrState = ProgramState.CONFIRMING_START;
+    }
+
+    public String loadHomeFromConfig()
+    {
+        SharedPreferences sp = mContext.getSharedPreferences(myPref,0);
+        return sp.getString("myHome",null);
+    }
+
+    public void storeHomeToConfig(String homeAddress)
+    {
+        SharedPreferences shardPref = mContext.getSharedPreferences(myPref,0);
+        SharedPreferences.Editor editor = shardPref.edit();
+        editor.putString("myHome", homeAddress);
+        editor.apply();
     }
 }
