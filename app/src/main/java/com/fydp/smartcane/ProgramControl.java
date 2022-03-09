@@ -181,8 +181,7 @@ public class ProgramControl {
     }
 
     private void askForHomeAddress() {
-        // TODO: delete stored home address here
-
+        removeHomeFromConfig();
         saveToHomeThisAddress = true;
         TTS.getTTS().textToVoice("please tell me your home address.");
         askForCity();
@@ -250,6 +249,14 @@ public class ProgramControl {
         SharedPreferences shardPref = mContext.getSharedPreferences(myPref,0);
         SharedPreferences.Editor editor = shardPref.edit();
         editor.putString("myHome", homeAddress);
+        editor.apply();
+    }
+
+    public void removeHomeFromConfig()
+    {
+        SharedPreferences shardPref = mContext.getSharedPreferences(myPref,0);
+        SharedPreferences.Editor editor = shardPref.edit();
+        editor.remove("myHome");
         editor.apply();
     }
 }
