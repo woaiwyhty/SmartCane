@@ -9,7 +9,7 @@ import java.util.Locale;
 
 public class TTS {
     private static TTS mInstance = null;
-    private static TextToSpeech mTTS;
+    public static TextToSpeech mTTS;
     private final Context mContext;
     private final Activity mActivity;
 

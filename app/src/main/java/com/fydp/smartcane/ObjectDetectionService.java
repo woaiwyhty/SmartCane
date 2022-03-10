@@ -7,8 +7,8 @@ import java.util.List;
 
 public class ObjectDetectionService {
     enum ObjectState {
-        IDLE(600),    // 5m < d
-        LEVEL_APPROACHING(300),  // 2m < d <= 5m
+        IDLE(500),    // 5m < d
+        LEVEL_APPROACHING(200),  // 2m < d <= 5m
         LEVEL_CLOSE(0);          // 0m < d <= 2m
 
         int distance;
@@ -18,11 +18,13 @@ public class ObjectDetectionService {
         int getDistance() {
             return distance;
         }
+        boolean isEqual(ObjectState state) { return state.distance == distance; }
     }
 
     private List<Float> queue;
     private static ObjectDetectionService INSTANCE = null;
-    private final int QUEUE_SIZE = 33;
+    private final int QUEUE_SIZE = 20;
+    private ObjectState previousState = ObjectState.LEVEL_CLOSE;
 
     public ObjectDetectionService() {
         queue = new ArrayList<>();
@@ -43,6 +45,7 @@ public class ObjectDetectionService {
             playWarning(incomingState);
             Log.d("ObjectDetectionService", "Lidar: distance = " + distance + " cm, avg: " + avg + " cm, state: " + incomingState );
             queue.clear();
+            this.previousState = incomingState;
         }
 
         queue.add(distance);
@@ -64,6 +67,12 @@ public class ObjectDetectionService {
     }
 
     private void playWarning(ObjectState state) {
+        if (TTS.mTTS.isSpeaking()) {
+            return;
+        }
+        if ( !isEqualToPreviousState(state) ) {
+            TTS.mTTS.stop();
+        }
         switch (state) {
             case LEVEL_APPROACHING:
                 TTS.getTTS().textToVoice("Short Beep");
@@ -74,5 +83,8 @@ public class ObjectDetectionService {
             default:
                 break;
         }
+    }
+    private boolean isEqualToPreviousState(ObjectState state) {
+        return state.isEqual(this.previousState);
     }
 }
