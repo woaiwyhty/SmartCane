@@ -75,6 +75,7 @@ public class NavigationThread implements Runnable {
                 }
 
                 String text_instruction = html2text(first_step.getString("html_instructions"));
+                Log.i("test", text_instruction);
                 if (!duplicateSteps.containsKey(text_instruction)) {
                     duplicateSteps.put(text_instruction, true);
                     TTS.getTTS().textToVoice(String.format(

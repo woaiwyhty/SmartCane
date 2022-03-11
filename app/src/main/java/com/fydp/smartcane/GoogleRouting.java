@@ -3,6 +3,7 @@ package com.fydp.smartcane;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.location.Location;
+import android.util.Log;
 
 public class GoogleRouting {
     private static String TAG = GoogleRouting.class.getSimpleName();
@@ -42,6 +43,7 @@ public class GoogleRouting {
                 "https://maps.googleapis.com/maps/api/directions/json?origin=%f,%f&destination=%s&key=%s&language=en&mode=walking",
                 origin.getLatitude(), origin.getLongitude(), destination, GoogleRouting.API_KEY);
 
+        Log.i("test", url);
         return SendHttpRequest(url, HTTP_REQUEST_TYPE.GET_DIRECTION);
     }
 

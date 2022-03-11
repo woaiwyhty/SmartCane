@@ -31,6 +31,7 @@ public class GPS {
 
         @Override
         public void onLocationChanged(Location location) {
+            
         }
     };
 
@@ -57,6 +58,8 @@ public class GPS {
                 return null;
             }
             if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, mLocationListener);
+
                 location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                 if (location == null) {
                     location = getLocationByNetwork();
