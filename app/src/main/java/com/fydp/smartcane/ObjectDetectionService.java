@@ -2,10 +2,13 @@ package com.fydp.smartcane;
 
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ObjectDetectionService {
     enum ObjectState {
-        IDLE(600),    // 5m < d
-        LEVEL_APPROACHING(300),  // 2m < d <= 5m
+        IDLE(500),    // 5m < d
+        LEVEL_APPROACHING(200),  // 2m < d <= 5m
         LEVEL_CLOSE(0);          // 0m < d <= 2m
 
         int distance;
@@ -15,15 +18,16 @@ public class ObjectDetectionService {
         int getDistance() {
             return distance;
         }
+        boolean isEqual(ObjectState state) { return state.distance == distance; }
     }
 
-    private float upperBound;
-    private float lowerBound;
+    private List<Float> queue;
     private static ObjectDetectionService INSTANCE = null;
+    private final int QUEUE_SIZE = 20;
+    private ObjectState previousState = ObjectState.LEVEL_CLOSE;
 
     public ObjectDetectionService() {
-        upperBound = 10000;
-        lowerBound = 10000;
+        queue = new ArrayList<>();
     }
 
     public static ObjectDetectionService getInstance() {
@@ -34,23 +38,23 @@ public class ObjectDetectionService {
     }
 
     public void logState(float distance) {
-        // within range
-        if (distance <= upperBound && distance >= lowerBound) {
-            return;
-        }
         // compute the incoming state based on distance
-        ObjectState incomingState = this.computeState(distance);
-        int THRESHOLD = 40;
-        upperBound = distance + THRESHOLD;
-        lowerBound = distance - THRESHOLD;
-        Log.d("ObjectDetectionService", "Lidar: distance = " + distance + " cm, state: " + incomingState );
-        playWarning(incomingState);
+        if (queue.size() >= QUEUE_SIZE) {
+            Double avg = queue.stream().mapToDouble(d -> d).average().orElse(0.0);
+            ObjectState incomingState = this.computeState(avg);
+            playWarning(incomingState);
+            Log.d("ObjectDetectionService", "Lidar: distance = " + distance + " cm, avg: " + avg + " cm, state: " + incomingState );
+            queue.clear();
+            this.previousState = incomingState;
+        }
+
+        queue.add(distance);
     }
 
     /*
     *   Map distance to state
     */
-    private ObjectState computeState(float distance) {
+    private ObjectState computeState(Double distance) {
         ObjectState nextState;
         if (distance > ObjectState.IDLE.getDistance()) {
             nextState = ObjectState.IDLE;
@@ -63,6 +67,12 @@ public class ObjectDetectionService {
     }
 
     private void playWarning(ObjectState state) {
+        if (TTS.mTTS.isSpeaking()) {
+            return;
+        }
+        if ( !isEqualToPreviousState(state) ) {
+            TTS.mTTS.stop();
+        }
         switch (state) {
             case LEVEL_APPROACHING:
                 TTS.getTTS().textToVoice("Short Beep");
@@ -73,5 +83,8 @@ public class ObjectDetectionService {
             default:
                 break;
         }
+    }
+    private boolean isEqualToPreviousState(ObjectState state) {
+        return state.isEqual(this.previousState);
     }
 }
